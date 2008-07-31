@@ -1,0 +1,14 @@
+#summary Description of the game environment.
+
+= Summary =
+The test game takes the shape of a classic turn-based strategy game with a top view.
+
+
+= Graphical Representation =
+== World View ==
+== Menu Panel ==
+
+
+= Actions =
+== Movement ==
+== Interactions ==
