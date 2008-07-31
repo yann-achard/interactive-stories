@@ -1,7 +1,23 @@
 #summary Things to solve.
 
-= Gameplay =
-
 == Population Model ==
+Since victory is based on population there must be a way to control the population growth.
+If there is a maximum population then how can it be enforced ?
+The problem posed by an asymptotic model is that population is separated in groups and therefore grows in groups.  Setting a global asymptote would be inconsistent with groups because it would keep small groups from growing. Setting an asymptote per group would make sense but would not limit the total population because one would only have to create new groups to make its population grow. The two possible solution I see from here are:
+  # Have a asymptote per group and limit the number of groups.
+  # Have a fixed population.
 
-== Urge to win ==
+The fixed population makes the gameplay simpler and would allow the player to concentrate on other matters but it poses a new problem: How is killed population replaced/regained ?
+There is a possibility of using gold as a way to replace population.
+
+== Urge To Win ==
+What is the main motivation for players (real or virtual) to win ? The winning conditions seems to point at a unification of the land. But is that strong enough ? Introducing a mechanism to force the player to win would enhance the motivation behind the game, such a motivation should not however force the player towards a given strategy more than another.
+Making the clan population dwindle automatically when lacking resources would be an efficient way to ensure motivation (fight for survival), this may however prevent low-money and long-term strategies.
+
+== Gameplay Balance ==
+Though it is impossible to kill every other clan it should not be possible to for too big of a federation too fast. The moral compass system prevents from forming alliances with every clan but since the moral compass can only prevent a limited and preferably low number of alliances there is need for another way to slow down federating clans.
+  # Requesting a better stance to federate (more cautious alliances).
+  # Requesting a better stance to remain in a federation (less flexible alliances).
+  # Requiring to have two groups next to each other in order to carryout federation.
+  # Any combination of the above.
+
