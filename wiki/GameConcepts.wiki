@@ -1,0 +1,28 @@
+#summary Definition of the concepts used by the game.
+
+=== Clan ===
+Each player (real or virtual) controls a clan and manages its gold. Clans are composed of at least one group and have attributes that are common to all its groups.
+
+=== Group ===
+A group represents a fragment (or possibly all) of the clan. A group can move on the terrain, attack enemy groups, and defend from enemy groups, all using its available stamina. The efficiency of attacking and defending is dependent on the clan's attack and defense attributes. Groups can also mine gold when placed on golden terrain cells.
+
+=== Group Stamina ===
+
+=== Clan Attributes ===
+
+=== Stamina Attribute ===
+=== Attack Attribute ===
+=== Defense Attribute ===
+=== Culture Attribute ===
+
+=== Turn ===
+=== Population Growth ===
+=== Combat System ===
+===  ===
+===  ===
+===  ===
+===  ===
+===  ===
+
+=== Cell ===
+A square unit of terrain delimited by the gray grid. Golden cells can be mined for gold. A cell can only contain one group at a time, should two groups of the same clan be on the same cell they will automatically be merge into a single group.
