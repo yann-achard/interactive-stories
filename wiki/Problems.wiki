@@ -1,0 +1,7 @@
+#summary Things to solve.
+
+= Gameplay =
+
+== Population Model ==
+
+== Urge to win ==
