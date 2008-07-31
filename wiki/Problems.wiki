@@ -21,3 +21,4 @@ Though it is impossible to kill every other clan it should not be possible to fo
   # Requiring to have two groups next to each other in order to carryout federation.
   # Any combination of the above.
 
+== Combat System ==
