@@ -17,9 +17,13 @@ The stance that a clan adopt towards another initially depends on the difference
 
 == Stance Variations ==
 The events that have an impact on the stance clan A has towards clan B can be of the following nature:
-  * Clan B attacks clan A
-  * Clan B attacks an ally of clan A
-  * An ally of clan B attacks clan A
+  * Clan B attacks clan A (-)
+  * Clan B attacks an ally of clan A (-)
+  * An ally of clan B attacks clan A (-)
+  * Clan B make an offering to clan A (+)
+  * Clan B attacks an enemy of clan A (+)
+  * An ally of clan B attacks an enemy of clan A (+)
+  * An ally of clan B attacks an ally of an enemy of clan A (+)
 
 === Moral Compass ===
 Basically the personality of the clan, it gives a bias on the stance between clans.
