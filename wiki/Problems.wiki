@@ -22,3 +22,9 @@ Though it is impossible to kill every other clan it should not be possible to fo
   # Any combination of the above.
 
 == Combat System ==
+To decide of the combat system we have to decide which features to integrate:
+  * Separation of attack and defense.
+  * Possibility of attacking and retracting in the same turn.
+  * Possibility of defending or running away.
+  * Possibility of making several attacks in the same turn.
+  * Possibility of fights to continue over several turns for other players to join the fight.
