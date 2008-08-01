@@ -4,7 +4,9 @@
 Federate more than 50% of the population. This means either reducing the enemy's population and/or federating more clans.
 
 === Federation ===
-A coalition of clans with a defensive pact. Allied clans also share their visibility.
+A coalition of clans with an economical pact. Allied clans also share their visibility.
+
+=== Economical Pact ===
 
 === Clan ===
 Each player (real or virtual) controls a clan and manages its gold. Clans are composed of at least one group and have attributes that are common to all its groups.
