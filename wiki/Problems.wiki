@@ -3,7 +3,7 @@
 == Population Model ==
 Since victory is based on population there must be a way to control the population growth.
 If there is a maximum population then how can it be enforced ?
-The problem posed by an asymptotic model is that population is separated in groups and therefore grows in groups.  Setting a global asymptote would be inconsistent with groups because it would keep small groups from growing. Setting an asymptote per group would make sense but would not limit the total population because one would only have to create new groups to make its population grow. The two possible solution I see from here are:
+The problem posed by an asymptotic model is that population is separated in groups and therefore grows in groups.  Setting a global asymptote would be inconsistent with groups because it would keep small groups from growing. Setting an asymptote per group would make sense but would not limit the total population because one would only have to create new groups to make the clan population grow. The two possible solution I see from here are:
   # Have a asymptote per group and limit the number of groups.
   # Have a fixed population.
 
