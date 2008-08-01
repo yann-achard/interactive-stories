@@ -26,6 +26,9 @@ The events that have an impact on the stance clan A has towards clan B can be of
   * Clan B attacks clan A (-)
   * Clan B attacks an ally of clan A (-)
   * An ally of clan B attacks clan A (-)
+And eventually (cf "Problems" page):
+  * Clan B refuses to pay when A is attacked (A and B being in the same federation)
+  * Clan B refuses to pay when B it wins money fore attacking (A and B being in the same federation)
 
 === Moral Compass ===
 Basically the personality of the clan, it gives a bias on the stance between clans.
