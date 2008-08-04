@@ -31,8 +31,8 @@ LRESULT CALLBACK	WindowProcedure(HWND,UINT,WPARAM,LPARAM);
 //---------------------------------------------------------
 extern Game	g_game;
 // DISPLAY //
-extern int					g_winx;
-extern int					g_winy;
+extern float				g_winx;
+extern float				g_winy;
 extern bool					g_wireframe;
 extern bool					g_grid;
 extern Vec3Df				g_rot;
@@ -58,6 +58,7 @@ extern float				g_size;
 extern float				g_hgap;
 extern Map*					g_map;
 extern int					g_nbClans;
+extern int					g_nbFeds;
 extern Clan*				g_clan;
 extern Clan**				g_clans;
 extern int					g_nbEnemy;

@@ -12,8 +12,8 @@ Group::Group(int _x, int _z, double _size, Clan* _clan){
 	clan = _clan;
 	stamina = clan->stamina;
 	planed = 0;
-	nomad = false;
 	g_board[x*g_side+z] = this;
+	mining = false;
 }
 //---------------------------------------------------------
 Group::~Group(){
@@ -54,6 +54,7 @@ int pos = x*g_side+z;
 }
 //---------------------------------------------------------
 void Group::MoveTo(int _x, int _z){
+	mining = false;
 	ResetVizibility();
 	x = _x;
 	z = _z;
@@ -66,15 +67,11 @@ void Group::MarkPosition(){
 //---------------------------------------------------------
 void Group::Turn(){
 	stamina = clan->stamina;
-	if (nomad){
-		;
-	}else{
-		size = (double)(pow((float)(size),NATALITY));
-	}
 }
 //---------------------------------------------------------
 void Group::Subgroup(double subsize){
 	clan->AddGroup(x, z, size-subsize);
+	clan->groups[clan->nbGroups-1]->stamina = stamina;
 	size = subsize;
 }
 //---------------------------------------------------------
@@ -93,5 +90,11 @@ void Group::Render(){
 		g_map->gdhgap*z);
 
 	g_device->SetStreamSource(0,g_game.quad_vb,0,sizeof(s_tvert));
-	g_device->DrawPrimitive(D3DPT_TRIANGLESTRIP,0,2);
+	if (mining){
+		g_device->SetTexture(0,g_game.mine_tex);
+		g_device->DrawPrimitive(D3DPT_TRIANGLESTRIP,0,2);
+		g_device->SetTexture(0,g_game.quad_tex);
+	} else {
+		g_device->DrawPrimitive(D3DPT_TRIANGLESTRIP,0,2);
+	}
 }

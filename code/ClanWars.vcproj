@@ -306,6 +306,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Names.h"
+				>
+			</File>
+			<File
 				RelativePath=".\random.h"
 				>
 			</File>

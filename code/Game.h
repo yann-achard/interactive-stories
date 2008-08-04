@@ -50,6 +50,9 @@ public:
 	void						UpdateActions();
 	void						ExecuteActions();
 	void						ActionsExecuted();
+	void						Attack();
+
+	void						Hover(int x, int z);
 
 	void						Turn(void);
 	void						Update(void);
@@ -58,6 +61,8 @@ public:
 	void						UpdateRay(void);
 	void						SetTempoTranslate(float x, float y, float z);
 	void						SetEColor(e_matcol col);
+	void						SetTempoEColor(e_matcol col);
+	void						PopTempoEColor();
 	void						Timeu();
 
 	//---------------------------------------------------------
@@ -90,6 +95,8 @@ public:
 	s_tvert*								quad;
 	VBUF										quad_vb;
 	LPDIRECT3DTEXTURE9			quad_tex;
+	LPDIRECT3DTEXTURE9			mine_tex;
+	LPDIRECT3DTEXTURE9			attack_tex;
 	Vec3Df*									square;
 	VBUF										square_vb;
 	Vec3Df*									path;
@@ -110,8 +117,11 @@ public:
 	int											lastway;
 	bool										actionplan;
 	bool										showway;
+	bool										attacking;
+	char										cursorpos[128];
 
 	D3DMATERIAL9*						mats;
+	e_matcol								curcol;
 
 };
 //---------------------------------------------------------

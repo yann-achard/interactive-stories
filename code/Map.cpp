@@ -137,7 +137,7 @@ void Map::Harmonize(){
 }
 //---------------------------------------------------------
 void Map::Point(Vec3Df& p1, Vec3Df& p2, int x, int y, float h1, float h2){
-	POINT w = {g_winx,g_winy};
+	POINT w = {(LONG)g_winx,(LONG)g_winy};
 	if (g_game.windowed){
 		ScreenToClient(g_game.hWindow,&w);
 	}
@@ -178,7 +178,7 @@ void Map::UpdateView(){
 
 	ztmp1 = (p1.z>p2.z ?  p1.z : p2.z);
 
-	Point(p1,p2,g_winx,0,0,vspan);
+	Point(p1,p2,(int)g_winx,0,0,vspan);
 	x = int ((p1.x>p2.x ?  p1.x : p2.x)/gap);
 	if (x > gd) x = gd;
 	vxmax = x;
@@ -189,7 +189,7 @@ void Map::UpdateView(){
 	if (z > gd) z = gd;
 	vzmax = z;
 
-	Point(p1,p2,g_winx/2,g_winy,0,vspan);
+	Point(p1,p2,(int)g_winx/2,(int)g_winy,0,vspan);
 	z = int((p1.z<p2.z ?  p1.z : p2.z)/gap);
 	if (z < 0) z = 0;
 	vzmin = z;
@@ -256,6 +256,7 @@ void Map::RebuildSelector(){
 		zmin = curz;
 		xmax = curx+1;
 		zmax = curz+1;
+		if (g_clan) g_game.Hover(curx,curz);
 	} else {
 		if (startx<curx){
 			xmin = startx;

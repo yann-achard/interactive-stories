@@ -1,12 +1,15 @@
 #include "main.h"
 #include "Clan.h"
 #include "Group.h"
+#include "Names.h"
 //---------------------------------------------------------
-Clan::Clan(int x, int z, double _size){
+Clan::Clan(int _id, int x, int z, double _size){
+	id = _id;
+	name = g_names[id];
 	size = _size;
 	nbGroups = 1;
-	gold = size;
-	stamina = STAMINA;
+	gold = 10000;
+	stamina = STAMINA+100;
 	attack = ATTACK;
 	defense = DEFENSE;
 	culture = CULTURE;

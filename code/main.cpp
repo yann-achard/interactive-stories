@@ -1,8 +1,8 @@
 #include "main.h"
 //---------------------------------------------------------
 // DISPLAY //
- int					g_winx;
- int					g_winy;
+ float				g_winx;
+ float				g_winy;
  float				g_screnratio;
  bool					g_wireframe;
  bool					g_grid;
@@ -33,6 +33,7 @@
  float				g_hgap;
  Map*					g_map;
  int					g_nbClans;
+ int					g_nbFeds;
  Clan*				g_clan;
  Clan**				g_clans;
  int					g_nbEnemy;
