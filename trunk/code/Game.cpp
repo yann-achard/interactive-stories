@@ -18,13 +18,13 @@ Game::Game(void){
 #endif
 	RECT DesktopSize;
 	GetClientRect(GetDesktopWindow(),&DesktopSize);
-	g_winx = DesktopSize.right;
-	g_winy = DesktopSize.bottom;
+	g_winx = (float)DesktopSize.right;
+	g_winy = (float)DesktopSize.bottom;
 	aniso = 0;
 	fov = 0.9f;
 	nPlane = 500.0f;
 	fPlane = 50000.0f;
-	aspRatio = (float)(g_winx-400) / (float)g_winy;
+	aspRatio = g_winx-300 / g_winy;
 
 	// Init Window
 	WNDCLASSEX WindowClass;
@@ -46,12 +46,14 @@ Game::Game(void){
 	//create window
 	hWindow = CreateWindowEx(WS_EX_CONTROLPARENT,"ClassName",	TITLE,
 		WS_OVERLAPPED | WS_CAPTION | WS_VISIBLE,
-		0, 0,	g_winx, g_winy,
+		0, 0,	(int)g_winx, (int)g_winy,
 		NULL,NULL,GetModuleHandle(NULL),NULL);
 	
 	quad_vb = NULL;
 	square_vb = NULL;
 	quad_tex = NULL;
+	mine_tex = NULL;
+	attack_tex = NULL;
 
 	if ((object = Direct3DCreate9(D3D_SDK_VERSION)) == NULL){
 		MessageBox(hWindow,"Direct3DCreate9() failed!","InitD3D()",MB_OK);
@@ -64,8 +66,8 @@ Game::Game(void){
 	params.AutoDepthStencilFormat = D3DFMT_D24X8;
 	params.hDeviceWindow = hWindow;
 	params.BackBufferCount = 1;
-	params.BackBufferWidth = g_winx;
-	params.BackBufferHeight = g_winy;
+	params.BackBufferWidth = (UINT)g_winx;
+	params.BackBufferHeight = (UINT)g_winy;
 	params.BackBufferFormat = D3DFMT_X8R8G8B8;
 	params.MultiSampleType = D3DMULTISAMPLE_NONE;
 	params.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
@@ -154,6 +156,7 @@ Game::Game(void){
 	pathindexowner = new Group*[maxpath];
 	nbpath = 0;
 	actionplan = false;
+	attacking = false;
 
 	g_device->CreateVertexBuffer(sizeof(s_tvert)*4,D3DUSAGE_WRITEONLY,VERT,D3DPOOL_MANAGED,&quad_vb,NULL);
 	quad_vb->Lock(0,sizeof(pData),(void**)&pData,0);
@@ -166,10 +169,13 @@ Game::Game(void){
 	square_vb->Unlock();
 
 	MACRO_BTEXFF("../art/IS.png", &quad_tex);
+	MACRO_BTEXFF("../art/groupdig.png", &mine_tex);
+	MACRO_BTEXFF("../art/groupattack.png", &attack_tex);
 }
 //---------------------------------------------------------
 Game::~Game(void){
 	if (quad_tex) quad_tex->Release();
+	if (mine_tex) mine_tex->Release();
 	if (g_device) g_device->Release();
 	if (object) object->Release();
 	if (quad_vb) quad_vb->Release();
@@ -200,7 +206,7 @@ Game::~Game(void){
 }
 //---------------------------------------------------------
 void Game::InitScene(void){
-	aspRatio = ((float)g_winx-400) / (float)g_winy;
+	aspRatio = (g_winx-400) / g_winy;
 	D3DXMatrixPerspectiveFovLH(&matProj,fov,aspRatio,nPlane,fPlane);
 	g_device->SetTransform(D3DTS_PROJECTION,&matProj);
 	D3DXMatrixRotationX(&matRotX, g_rot.x);
@@ -210,7 +216,8 @@ void Game::InitScene(void){
 	g_map->UpdateView();
 
 
-	g_device->SetRenderState(D3DRS_AMBIENT,RGB(0,0,0));
+	//g_device->SetRenderState(D3DRS_AMBIENT,RGB(0,0,0));
+	g_device->SetRenderState(D3DRS_AMBIENT,RGB(255,255,255));
 	g_device->SetRenderState(D3DRS_LIGHTING,true);
 	g_device->SetRenderState(D3DRS_CULLMODE,D3DCULL_CCW);
 	g_device->SetRenderState(D3DRS_ZENABLE,D3DZB_TRUE);
@@ -231,12 +238,12 @@ void Game::InitScene(void){
 
 	ZeroMemory(&foglight,sizeof(foglight));
 	foglight.Type = D3DLIGHT_DIRECTIONAL;
-	foglight.Diffuse.r = 0.3f;
-	foglight.Diffuse.g = 0.3f;
-	foglight.Diffuse.b = 0.3f;
-	foglight.Direction.x = 0;
-	foglight.Direction.y = -5;
-	foglight.Direction.z = 5;
+	foglight.Diffuse.r = 0.25f;
+	foglight.Diffuse.g = 0.25f;
+	foglight.Diffuse.b = 0.25f;
+	foglight.Direction.x = 5;
+	foglight.Direction.y = -15;
+	foglight.Direction.z = 0;
 	foglight.Falloff = 1.0f;
 	foglight.Range = 10000.0f;
 
@@ -255,6 +262,7 @@ void Game::InitScene(void){
 }
 //---------------------------------------------------------
 void Game::InitGame(void){
+	g_clan = NULL;
 	g_ctrl = false;
 	g_up = false;
 	g_down = false;
@@ -262,16 +270,16 @@ void Game::InitGame(void){
 	g_left = false;
 	g_grid = true;
 	g_wireframe = false;
+
 	g_map = new Map();
 	g_rez = g_map->hd;
 	g_size = g_map->hspan;
 	g_side = g_map->gd;
 	g_hgap = g_map->gdhgap;
-	g_pos.set(0,-g_map->vspan-3000,g_size/2);
-	g_rot.set(-1.0f,0,0);
-	
+
 	g_nbAlly = 0;
 	g_nbClans = 0;
+	g_nbFeds = 0;
 	g_nbEnemy = 0;
 	g_nbNeutral = 0;
 	g_nbSelected = 0;
@@ -285,7 +293,8 @@ void Game::InitGame(void){
 	g_viz = new char[g_side*g_side];
 	ZeroMemory(g_viz,g_side*g_side);
 
-	g_nbClans = 50;
+
+	g_nbClans = 10;
 	g_clans = new Clan*[MAX_CLANS];
 	g_pop = 0;
 	for (int i=g_nbClans-1; i>=0; --i){
@@ -295,12 +304,14 @@ void Game::InitGame(void){
 			++i;
 			continue;
 		}
-		g_clans[i] = new Clan(x,z,100);
+		g_clans[i] = new Clan(i,x,z,100);
 		g_pop += g_clans[i]->size;
 	}
 	g_selectedpop = 0;
 	g_clan = g_clans[0];
 	g_clan->SetVizibility();
+	g_pos.set(-g_clan->groups[0]->x*g_hgap+g_map->hspan/2.0f,-g_map->vspan-3000,-g_clan->groups[0]->z*g_hgap+g_map->hspan/1.5f);
+	g_rot.set(-1.0f,0,0);	
 	g_hud = new Hud(g_device);
 	g_hud->UpdateText();
 }
@@ -350,16 +361,20 @@ void Game::Update(){
 	if (ldx) {
 		if (light.Direction.x > 5.0f) ldx = false;
 		light.Direction.x += star;
+		foglight.Direction.x -= star;
 	} else {
 		if (light.Direction.x < -5.0f) ldx = true;
 		light.Direction.x -= star;
+		foglight.Direction.x += star;
 	}
 	if (ldz) {
 		if (light.Direction.z > 5.0f) ldz = false;
 		light.Direction.z += star;
+		foglight.Direction.z -= star;
 	} else {
 		if (light.Direction.z < -5.0f) ldz = true;
 		light.Direction.z -= star;
+		foglight.Direction.z += star;
 	}
 
 	float pan = -dt*g_pos.y;
@@ -498,8 +513,7 @@ void Game::ActionsExecuted(){
 //---------------------------------------------------------
 void Game::Render(void){
 
-	//if (!CheckDevice()) return;
-	g_device->Clear(0,NULL,D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_XRGB(0,10,40),1.0f,0);
+	g_device->Clear(0,NULL,D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_XRGB(0,10,50),1.0f,0);
 	g_device->BeginScene();
 
 	g_device->SetLight(0,&light);
@@ -536,9 +550,22 @@ void Game::Render(void){
 			}
 		}
 	}
+	// Attacking
+	if (attacking){
+		g_device->SetRenderState(D3DRS_LIGHTING,false);
+		SetEColor(MC_EBLACK);
+		g_device->SetTexture(0,attack_tex);
+		SetTempoTranslate(g_map->gdhgap*g_map->curx,
+			g_map->hmap[g_map->curx+g_map->curz*g_map->gd],
+			g_map->gdhgap*g_map->curz);
+
+		g_device->SetStreamSource(0,quad_vb,0,sizeof(s_tvert));
+		g_device->DrawPrimitive(D3DPT_TRIANGLESTRIP,0,2);
+		g_device->SetRenderState(D3DRS_LIGHTING,true);
+	}
 	g_device->SetTexture(0,NULL);
 	g_device->SetRenderState(D3DRS_ALPHABLENDENABLE,false);
-	
+
 	// Selected groups
 	g_device->SetFVF(D3DFVF_XYZ);
 	SetEColor(MC_EBLUE);
@@ -556,8 +583,40 @@ void Game::Render(void){
 		CheckDevice();
 }
 //---------------------------------------------------------
+void Game::Attack(){
+	int x = g_map->curx;
+	int z = g_map->curz;
+	Group* g = g_board[x*g_side+z];
+	if (g){
+		if (g->clan==g_clan) {
+			g_hud->SetCaption("We shall not attack our owns.");
+		} else {
+			for (int i=g_nbSelected-1; i>=0; --i){
+				if (g_selected[i]->x>x+1 || g_selected[i]->x<x-1 ||
+				g_selected[i]->z>z+1 || g_selected[i]->z<z-1){
+					g_hud->SetCaption("All the groups are not close enough to attack.");
+					return;
+				}
+			}
+			// Attack panel
+			g_hud->AttackPanel(x,z);
+		}
+	} else {
+		g_hud->SetCaption("Nobody there to attack.");
+	}
+}
+//---------------------------------------------------------
 void Game::SetEColor(e_matcol col){
+	curcol = col;
+	g_device->SetMaterial(&mats[curcol]);
+}
+//---------------------------------------------------------
+void Game::SetTempoEColor(e_matcol col){
 	g_device->SetMaterial(&mats[col]);
+}
+//---------------------------------------------------------
+void Game::PopTempoEColor(){
+	g_device->SetMaterial(&mats[curcol]);
 }
 //---------------------------------------------------------
 void Game::SetTempoTranslate(float x, float y, float z){
@@ -569,7 +628,7 @@ void Game::SetTempoTranslate(float x, float y, float z){
 void Game::UpdateRay(void){
 	POINT p;
 	GetCursorPos(&p);
-	POINT p0 = {g_winx,g_winy};
+	POINT p0 = {(LONG)g_winx,(LONG)g_winy};
 	if (windowed){
 		ScreenToClient(hWindow,&p);
 		ScreenToClient(hWindow,&p0);
@@ -706,10 +765,18 @@ void Game::UpdateWay(){
 	g_hud->UpdateSelect();
 }
 //---------------------------------------------------------
+void Game::Hover(int x, int z){
+	if (g_board[x*g_side+z]){
+		g_hud->SetCaption(g_board[x*g_side+z]->clan->name);
+	} else {
+		g_hud->CaptionOff();
+	}
+}
+//---------------------------------------------------------
 void Game::KeyDown(int key){
  	if ((key>=96 && key<=105) || (key>=48 && key<=57) || key==13 || key==8 || key==46){
 		if (!g_hud->subpopup){
-			g_hud->Click(75,600);
+			g_hud->Click(150,575);
 			if (key==13) return;
 		}
 		if (key==13){
@@ -740,11 +807,28 @@ void Game::KeyUp(int key){
 		case VK_DOWN: g_down=false; break;
 		case VK_LEFT: g_left=false; break;
 		case VK_RIGHT: g_right=false; break;
+		case VK_END: Turn(); break;
 		default: break;
 	}
 }
 //---------------------------------------------------------
 void Game::LeftButtonDown(int w, int l){
+	POINT p;
+	GetCursorPos(&p);
+	if (windowed){
+		ScreenToClient(hWindow,&p);
+	}
+	
+	if (p.x < 300 || g_hud->attackpanel){
+		g_hud->Click(p.x,p.y);
+		return;
+	}
+
+	if (attacking){
+		attacking = false;
+		Attack();
+		return;
+	}
 	g_mousebut[0] = true;
 	if (g_hud->subpopup) g_hud->subpopup = false;
 	if ((w&MK_CONTROL) != MK_CONTROL){
@@ -753,8 +837,11 @@ void Game::LeftButtonDown(int w, int l){
 }
 //---------------------------------------------------------
 void Game::LeftButtonUp(int w, int l){
+	if (g_mousebut[0] == false){
+		return;
+	}
 	g_mousebut[0] = false;
-	
+
 	POINT p;
 	GetCursorPos(&p);
 	if (windowed){
@@ -763,8 +850,7 @@ void Game::LeftButtonUp(int w, int l){
 	
 	//int px = LOWORD(l);
 	//int py = HIWORD(l);
-	if (p.x < 300){
-		g_hud->Click(p.x,p.y);
+	if (p.x < 300 || g_hud->attackpanel){
 		return;
 	}
 	int xmin, xmax, zmin, zmax;
@@ -835,6 +921,15 @@ void Game::LeftButtonUp(int w, int l){
 }
 //---------------------------------------------------------
 void Game::RightButtonDown(int w, int l){
+	if (attacking){
+		attacking = false;
+		g_hud->SetCaption("Attack cancelled.");
+		return;
+	}
+	if (g_hud->attackpanel){
+		g_hud->attackpanel = false;
+		return;
+	}
 	g_mousebut[2] = true;
 	if (g_nbSelected && (w&MK_CONTROL)!=MK_CONTROL){
 		showway = true;
@@ -843,6 +938,9 @@ void Game::RightButtonDown(int w, int l){
 }
 //---------------------------------------------------------
 void Game::RightButtonUp(int w, int l){
+	if (g_mousebut[2] == false){
+		return;
+	}
 	if (showway){
 		showway = false;
 		lastway = -1;
@@ -890,6 +988,12 @@ void Game::MouseWheel(int key){
 }
 //---------------------------------------------------------
 void Game::MouseMove(int mod, int x, int y){
+	if (g_hud->attackpanel){
+		POINT p;
+		GetCursorPos(&p);
+		sprintf(cursorpos, "x: %4d y: %4d", p.x, p.y);
+		g_hud->SetCaption(cursorpos);
+	}
 	static int sx;
 	static int sy;
 	if (!g_dragging){

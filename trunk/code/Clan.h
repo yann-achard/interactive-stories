@@ -3,13 +3,15 @@
 //---------------------------------------------------------
 class Group;
 //---------------------------------------------------------
-#define STAMINA	10.0f
-#define ATTACK	10.0f
-#define DEFENSE	10.0f
-#define CULTURE	10.0f
+#define STAMINA	1.0f
+#define ATTACK	1.0f
+#define DEFENSE	1.0f
+#define CULTURE	1.0f
 //---------------------------------------------------------
 class Clan {
 public:
+	int			id;
+	char*		name;
 	double	size;
 	double	gold;
 	int			nbGroups;
@@ -21,7 +23,7 @@ public:
 	double	culture;
 
 
-	Clan(int x, int z, double _size);
+	Clan(int _id, int x, int z, double _size);
 	~Clan();
 	void AddGroup(int x, int z, double _size);
 	void MergeGroups(Group* g1, Group* g2);

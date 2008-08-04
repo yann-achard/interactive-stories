@@ -3,12 +3,10 @@
 //---------------------------------------------------------
 class Clan;
 //---------------------------------------------------------
-#define NATALITY 1.02f
-//---------------------------------------------------------
 class Group {
 public:
 	Clan*		clan;
-	bool		nomad;
+	bool		mining;
 	double	size;
 	double	stamina;
 	double	planed;
