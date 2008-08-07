@@ -2,25 +2,214 @@
 #include "d3ddefs.h"
 #include "main.h"
 //---------------------------------------------------------
-static char*apstrs[4] = {
+static char* apstrs[8] = {
+	"\n\n\n",
 	"\n\n\n\n\n",
+	"\n\n\n\n\n\n\n",
 	"\n\n\n\n\n\n\n\n\n",
+	"\n\n\n\n\n\n\n\n\n\n\n",
 	"\n\n\n\n\n\n\n\n\n\n\n\n\n",
+	"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n",
 	"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
 };
 static double attackbonus[] = {
-	0.0, 1.0, 1.2, 1.5, 2.0, 2.6, 3.3, 4.0, 5.0
+	0.0, 1.0, 1.1, 1.3, 1.6, 2.0, 2.5, 4.1, 4.7
 };
 //---------------------------------------------------------
-Hud::Hud(LPDIRECT3DDEVICE9& device){
+Hud::Hud(){
 	show = true;
+	getmouse = false;
 	caption = false;
 	font = NULL;
 	tex = NULL;
 	frame_counter = 0;
 	last_time = 0;
 
-	D3DXCreateTextureFromFile(device, "../art/hud.png", &tex);
+	D3DXFONT_DESC fontDesc = {16,0,600,0,false,DEFAULT_CHARSET,OUT_TT_PRECIS,
+                          CLIP_DEFAULT_PRECIS,FF_MODERN,"CourierNew"};
+	D3DXCreateFontIndirect(g_device,&fontDesc,&font);
+
+	InitLeftPanel();
+	InitAttackPanel();
+	InitGoldPanel();
+	InitOffer();
+
+	UpdateSelect();
+}
+//---------------------------------------------------------
+void Hud::InitOffer(){
+	offer = false;
+	goldoffer = false;
+
+	of_vb = NULL;
+	of = new s_vert2dc[15];
+	// Gold offer 
+	of[0].set(g_winx/2+80, g_winy/2-233, 0xFFFFFFFF);
+	of[1].set(g_winx/2+220, g_winy/2-233, 0xFFFFFFFF);
+	of[2].set(g_winx/2+220, g_winy/2-203, 0xFFFFFFFF);
+	of[3].set(g_winx/2+80, g_winy/2-203, 0xFFFFFFFF);
+	of[4].set(g_winx/2+80, g_winy/2-233, 0xFFFFFFFF);
+
+	// Peace offer
+	of[5].set(g_winx/2+80, g_winy/2-112, 0xFFFFFFFF);
+	of[6].set(g_winx/2+220, g_winy/2-112, 0xFFFFFFFF);
+	of[7].set(g_winx/2+220, g_winy/2-82, 0xFFFFFFFF);
+	of[8].set(g_winx/2+80, g_winy/2-82, 0xFFFFFFFF);
+	of[9].set(g_winx/2+80, g_winy/2-112, 0xFFFFFFFF);
+
+	// Federate
+	of[10].set(g_winx/2+80, g_winy/2+15, 0xFFFFFFFF);
+	of[11].set(g_winx/2+220, g_winy/2+15, 0xFFFFFFFF);
+	of[12].set(g_winx/2+220, g_winy/2+45, 0xFFFFFFFF);
+	of[13].set(g_winx/2+80, g_winy/2+45, 0xFFFFFFFF);
+	of[14].set(g_winx/2+80, g_winy/2+15, 0xFFFFFFFF);
+
+	g_device->CreateVertexBuffer(sizeof(s_vert2dc)*15,D3DUSAGE_WRITEONLY,VERT2DC,D3DPOOL_DEFAULT,&of_vb,NULL);
+	of_vb->Lock(0,sizeof(pData),(void**)&pData,0);
+	memcpy(pData,of,sizeof(s_vert2dc)*15);
+	of_vb->Unlock();
+}
+//---------------------------------------------------------
+void Hud::InitGoldPanel(){
+	goldpanel = false;
+
+	fontgp.left = (LONG)(g_winx/2-400+150);
+	fontgp.right = (LONG)(g_winx/2+400+150);
+	fontgp.top = (LONG)(g_winy/2-370);
+	fontgp.bottom = (LONG)(g_winy/2+270);
+
+	fontfgp.left = (LONG)(g_winx/2-300);
+	fontfgp.right = (LONG)(g_winx/2-30);
+	fontfgp.top = (LONG)(g_winy/2-270);
+	fontfgp.bottom = (LONG)(g_winy/2+200);
+
+	fontnfgp.left = (LONG)(g_winx/2+330);
+	fontnfgp.right = (LONG)(g_winx/2+600);
+	fontnfgp.top = (LONG)(g_winy/2-270);
+	fontnfgp.bottom = (LONG)(g_winy/2+200);
+
+	fedlistlen = 0;
+	nfedlistlen = 0;
+	fedclans = new Clan*[g_nbClans];
+	nfedclans = new Clan*[g_nbClans];
+	fedliststr = new char*[g_nbClans];
+	nfedliststr = new char*[g_nbClans];
+	fedliststances = new char*[g_nbClans];
+	nfedliststances = new char*[g_nbClans];
+	for (int i=g_nbClans-1; i>=0; --i) {
+		fedliststances[i] = new char[8];
+		nfedliststances[i] = new char[8];
+	}
+
+	gp_vb = NULL;
+	gp = new s_vert2dc[38];
+	// Background
+	gp[0].set(g_winx/2+650, g_winy/2-400, 0xFF000000);
+	gp[1].set(g_winx/2+650, g_winy/2+300, 0xFF000000);
+	gp[2].set(g_winx/2-350, g_winy/2-400, 0xFF000000);
+	gp[3].set(g_winx/2-350, g_winy/2+300, 0xFF000000);
+
+	// Outline
+	gp[4].set(g_winx/2+650, g_winy/2-400, 0xFFFFFFFF);
+	gp[5].set(g_winx/2+650, g_winy/2+300, 0xFFFFFFFF);
+	gp[6].set(g_winx/2-350, g_winy/2+300, 0xFFFFFFFF);
+	gp[7].set(g_winx/2-350, g_winy/2-400, 0xFFFFFFFF);
+	gp[8].set(g_winx/2+650, g_winy/2-400, 0xFFFFFFFF);
+
+	// Close
+	gp[9].set(g_winx/2+120, g_winy/2+280, 0xFFFFFFFF);
+	gp[10].set(g_winx/2+180, g_winy/2+280, 0xFFFFFFFF);
+	gp[11].set(g_winx/2+180, g_winy/2+245, 0xFFFFFFFF);
+	gp[12].set(g_winx/2+120, g_winy/2+245, 0xFFFFFFFF);
+	gp[13].set(g_winx/2+120, g_winy/2+280, 0xFFFFFFFF);
+
+	// Vertical dividers
+	gp[14].set(g_winx/2+20, g_winy/2-300, 0xFFFFFFFF);
+	gp[15].set(g_winx/2+20, g_winy/2+200, 0xFFFFFFFF);
+	gp[16].set(g_winx/2+280, g_winy/2-300, 0xFFFFFFFF);
+	gp[17].set(g_winx/2+280, g_winy/2+200, 0xFFFFFFFF);
+
+	// Stamina
+	gp[18].set(g_winx/2+200, g_winy/2-250, 0xFFFFFFFF);
+	gp[19].set(g_winx/2+200, g_winy/2-220, 0xFFFFFFFF);
+	gp[20].set(g_winx/2+100, g_winy/2-220, 0xFFFFFFFF);
+	gp[21].set(g_winx/2+100, g_winy/2-250, 0xFFFFFFFF);
+	gp[22].set(g_winx/2+200, g_winy/2-250, 0xFFFFFFFF);
+
+	// Attack
+	gp[23].set(g_winx/2+200, g_winy/2-153, 0xFFFFFFFF);
+	gp[24].set(g_winx/2+200, g_winy/2-123, 0xFFFFFFFF);
+	gp[25].set(g_winx/2+100, g_winy/2-123, 0xFFFFFFFF);
+	gp[26].set(g_winx/2+100, g_winy/2-153, 0xFFFFFFFF);
+	gp[27].set(g_winx/2+200, g_winy/2-153, 0xFFFFFFFF);
+
+	// Defense
+	gp[28].set(g_winx/2+200, g_winy/2-65, 0xFFFFFFFF);
+	gp[29].set(g_winx/2+200, g_winy/2-35, 0xFFFFFFFF);
+	gp[30].set(g_winx/2+100, g_winy/2-35, 0xFFFFFFFF);
+	gp[31].set(g_winx/2+100, g_winy/2-65, 0xFFFFFFFF);
+	gp[32].set(g_winx/2+200, g_winy/2-65, 0xFFFFFFFF);
+
+	// Culture
+	gp[33].set(g_winx/2+200, g_winy/2+30, 0xFFFFFFFF);
+	gp[34].set(g_winx/2+200, g_winy/2+60, 0xFFFFFFFF);
+	gp[35].set(g_winx/2+100, g_winy/2+60, 0xFFFFFFFF);
+	gp[36].set(g_winx/2+100, g_winy/2+30, 0xFFFFFFFF);
+	gp[37].set(g_winx/2+200, g_winy/2+30, 0xFFFFFFFF);
+
+	g_device->CreateVertexBuffer(sizeof(s_vert2dc)*38,D3DUSAGE_WRITEONLY,VERT2DC,D3DPOOL_DEFAULT,&gp_vb,NULL);
+	gp_vb->Lock(0,sizeof(pData),(void**)&pData,0);
+	memcpy(pData,gp,sizeof(s_vert2dc)*38);
+	gp_vb->Unlock();
+}
+//---------------------------------------------------------
+void Hud::InitAttackPanel(){
+	attackpanel = false;
+	resultpanel = false;
+	fontap.left = (LONG)(g_winx/2-400+150);
+	fontap.right = (LONG)(g_winx/2+400+150);
+	fontap.top = (LONG)(g_winy/2-250);
+	fontap.bottom = (LONG)(g_winy/2+170);
+	ap_vb = NULL;
+	ap = new s_vert2dc[24];
+	ap[0].set(g_winx/2+500+150, g_winy/2-300, 0xFF000000);
+	ap[1].set(g_winx/2+500+150, g_winy/2+200, 0xFF000000);
+	ap[2].set(g_winx/2-500+150, g_winy/2-300, 0xFF000000);
+	ap[3].set(g_winx/2-500+150, g_winy/2+200, 0xFF000000);
+
+	ap[4].set(g_winx/2+500+150, g_winy/2-300, 0xFFFFFFFF);
+	ap[5].set(g_winx/2+500+150, g_winy/2+200, 0xFFFFFFFF);
+	ap[6].set(g_winx/2-500+150, g_winy/2+200, 0xFFFFFFFF);
+	ap[7].set(g_winx/2-500+150, g_winy/2-300, 0xFFFFFFFF);
+	ap[8].set(g_winx/2+500+150, g_winy/2-300, 0xFFFFFFFF);
+
+	ap[9].set(g_winx/2+20, g_winy/2+180, 0xFFFFFFFF);
+	ap[10].set(g_winx/2+105, g_winy/2+180, 0xFFFFFFFF);
+	ap[11].set(g_winx/2+105, g_winy/2+145, 0xFFFFFFFF);
+	ap[12].set(g_winx/2+20, g_winy/2+145, 0xFFFFFFFF);
+	ap[13].set(g_winx/2+20, g_winy/2+180, 0xFFFFFFFF);
+
+	ap[14].set(g_winx/2+20+173, g_winy/2+180, 0xFFFFFFFF);
+	ap[15].set(g_winx/2+105+173, g_winy/2+180, 0xFFFFFFFF);
+	ap[16].set(g_winx/2+105+173, g_winy/2+145, 0xFFFFFFFF);
+	ap[17].set(g_winx/2+20+173, g_winy/2+145, 0xFFFFFFFF);
+	ap[18].set(g_winx/2+20+173, g_winy/2+180, 0xFFFFFFFF);
+
+	ap[19].set(g_winx/2+120, g_winy/2+180, 0xFFFFFFFF);
+	ap[20].set(g_winx/2+180, g_winy/2+180, 0xFFFFFFFF);
+	ap[21].set(g_winx/2+180, g_winy/2+145, 0xFFFFFFFF);
+	ap[22].set(g_winx/2+120, g_winy/2+145, 0xFFFFFFFF);
+	ap[23].set(g_winx/2+120, g_winy/2+180, 0xFFFFFFFF);
+
+	g_device->CreateVertexBuffer(sizeof(s_vert2dc)*24,D3DUSAGE_WRITEONLY,VERT2DC,D3DPOOL_DEFAULT,&ap_vb,NULL);
+	ap_vb->Lock(0,sizeof(pData),(void**)&pData,0);
+	memcpy(pData,ap,sizeof(s_vert2dc)*24);
+	ap_vb->Unlock();
+}
+//---------------------------------------------------------
+void Hud::InitLeftPanel(){
+
+	D3DXCreateTextureFromFile(g_device, "../art/hud.png", &tex);
 	texpts = new s_vert2dt[12];
 	texpts[0].set(294,655,0.56f,0);
 	texpts[1].set(294,970,0.56f,0.6f);
@@ -41,10 +230,6 @@ Hud::Hud(LPDIRECT3DDEVICE9& device){
 	memcpy(pData,texpts,sizeof(s_vert2dt)*12);
 	tex_vb->Unlock();
 
-	D3DXFONT_DESC fontDesc = {16,0,600,0,false,DEFAULT_CHARSET,OUT_TT_PRECIS,
-                          CLIP_DEFAULT_PRECIS,FF_MODERN,"CourierNew"};
-
-	D3DXCreateFontIndirect(device,&fontDesc,&font);
 	fontglob.left = 0;
 	fontglob.right = 300;
 	fontglob.top = 7;
@@ -88,14 +273,12 @@ Hud::Hud(LPDIRECT3DDEVICE9& device){
 	memcpy(pData,sp,sizeof(s_vert2dc)*9);
 	sp_vb->Unlock();
 
-
 	back_vb = NULL;
 	back = new s_vert2dc[4];
 	back[0].set(300,0,0xFF000000);
 	back[1].set(300,g_winy,0xFF000000);
 	back[2].set(0,0,0xFF000000);
 	back[3].set(0,g_winy,0xFF000000);
-	VOID* pData;
 	g_device->CreateVertexBuffer(sizeof(s_vert2dc)*4,D3DUSAGE_WRITEONLY,VERT2DC,D3DPOOL_DEFAULT,&back_vb,NULL);
 	back_vb->Lock(0,sizeof(pData),(void**)&pData,0);
 	memcpy(pData,back,sizeof(s_vert2dc)*4);
@@ -273,50 +456,6 @@ Hud::Hud(LPDIRECT3DDEVICE9& device){
 	stam_vb = NULL;
 	qsnb = 0;
 	qstam_vb = NULL;
-
-	attackpanel = false;
-	resultpanel = false;
-	fontap.left = (LONG)(g_winx/2-400+150);
-	fontap.right = (LONG)(g_winx/2+400+150);
-	fontap.top = (LONG)(g_winy/2-250);
-	fontap.bottom = (LONG)(g_winy/2+170);
-	ap_vb = NULL;
-	ap = new s_vert2dc[24];
-	ap[0].set(g_winx/2+500+150, g_winy/2-300, 0xFF000000);
-	ap[1].set(g_winx/2+500+150, g_winy/2+200, 0xFF000000);
-	ap[2].set(g_winx/2-500+150, g_winy/2-300, 0xFF000000);
-	ap[3].set(g_winx/2-500+150, g_winy/2+200, 0xFF000000);
-
-	ap[4].set(g_winx/2+500+150, g_winy/2-300, 0xFFFFFFFF);
-	ap[5].set(g_winx/2+500+150, g_winy/2+200, 0xFFFFFFFF);
-	ap[6].set(g_winx/2-500+150, g_winy/2+200, 0xFFFFFFFF);
-	ap[7].set(g_winx/2-500+150, g_winy/2-300, 0xFFFFFFFF);
-	ap[8].set(g_winx/2+500+150, g_winy/2-300, 0xFFFFFFFF);
-
-	ap[9].set(g_winx/2+20, g_winy/2+180, 0xFFFFFFFF);
-	ap[10].set(g_winx/2+105, g_winy/2+180, 0xFFFFFFFF);
-	ap[11].set(g_winx/2+105, g_winy/2+145, 0xFFFFFFFF);
-	ap[12].set(g_winx/2+20, g_winy/2+145, 0xFFFFFFFF);
-	ap[13].set(g_winx/2+20, g_winy/2+180, 0xFFFFFFFF);
-
-	ap[14].set(g_winx/2+20+173, g_winy/2+180, 0xFFFFFFFF);
-	ap[15].set(g_winx/2+105+173, g_winy/2+180, 0xFFFFFFFF);
-	ap[16].set(g_winx/2+105+173, g_winy/2+145, 0xFFFFFFFF);
-	ap[17].set(g_winx/2+20+173, g_winy/2+145, 0xFFFFFFFF);
-	ap[18].set(g_winx/2+20+173, g_winy/2+180, 0xFFFFFFFF);
-
-	ap[19].set(g_winx/2+120, g_winy/2+180, 0xFFFFFFFF);
-	ap[20].set(g_winx/2+180, g_winy/2+180, 0xFFFFFFFF);
-	ap[21].set(g_winx/2+180, g_winy/2+145, 0xFFFFFFFF);
-	ap[22].set(g_winx/2+120, g_winy/2+145, 0xFFFFFFFF);
-	ap[23].set(g_winx/2+120, g_winy/2+180, 0xFFFFFFFF);
-
-	g_device->CreateVertexBuffer(sizeof(s_vert2dc)*24,D3DUSAGE_WRITEONLY,VERT2DC,D3DPOOL_DEFAULT,&ap_vb,NULL);
-	ap_vb->Lock(0,sizeof(pData),(void**)&pData,0);
-	memcpy(pData,ap,sizeof(s_vert2dc)*24);
-	ap_vb->Unlock();
-
-	UpdateSelect();
 }
 //---------------------------------------------------------
 Hud::~Hud(){
@@ -327,6 +466,18 @@ Hud::~Hud(){
 	if (tex_vb) tex_vb->Release();
 	if (tex) tex->Release();
 	if (font) font->Release();
+	if (ap_vb) ap_vb->Release();
+	if (gp_vb) gp_vb->Release();
+	delete fedliststr;
+	delete nfedliststr;
+	delete fedclans;
+	delete nfedclans;
+	for (int i=g_nbClans-1; i>=0; --i) {
+		delete fedliststances[i];
+		delete nfedliststances[i];
+	}
+	delete fedliststances;
+	delete nfedliststances;
 	delete texpts;
 	delete back;
 	delete lines;
@@ -342,22 +493,104 @@ void Hud::Click(int x, int y){
 			if (x>=g_winx/2+20 && x<=g_winx/2+105){
 				// Cancel
 				attackpanel = false;
+				getmouse = false;
 				SetCaption("Attack cancelled.");
 			} else if (x>=g_winx/2+193 && x<=g_winx/2+278) {
 				// Attack
 				resultpanel = true;
-				; /// !!! ///
-			} else if (resultpanel && x>=g_winx/2+120 && x<=g_winx/2+180) {
-				// Close button
-				resultpanel = false;
-				attackpanel = false;
+				double bodycount = floor(apow-dpow);
+				if (bodycount < 0) bodycount = 0;
+				if (bodycount > enemy->size) bodycount = enemy->size;
+				sprintf(attackrez, "Attack power %.1f VS Defense power %.1f\n\n Enemy units killed: %0.f of %.0f", apow, dpow, bodycount, enemy->size);
+				enemy->Kill(bodycount);
 			}
-		} else if (x>=1360 && x<=88){
-			// Stamina buttons
-			; /// !!! ///
 		}
 	}
-	if (y >= 397 && y <= 493){
+	if (resultpanel && y>=g_winy/2+145 && y<=g_winy/2+180 && x>=g_winx/2+120 && x<=g_winx/2+180) {
+		// Close button
+		resultpanel = false;
+		attackpanel = false;
+		getmouse = false;
+	}
+	if (offer) {
+		if (y>=g_winy/2+245 && y<=g_winy/2+280 && x>=g_winx/2+120 && x<=g_winx/2+180) {
+			// Close button
+			offer = false;
+		} else if (x>=g_winx/2+80 && x<=g_winx/2+200) {
+			// Buttons area
+			if (y>=g_winy/2-233 && y<=g_winy/2-203) {
+				// Gold offer
+				goldoffer = true;
+			} else if (y>=g_winy/2-112 && y<=g_winy/2-182){
+				// Peace offer
+				;/// ! ///
+			} else if (y>=g_winy/2+15 && y<=g_winy/2+45){
+				// Federate
+				;/// ! ///
+			}
+		}
+	} else if (goldpanel){
+		if (x>=g_winx/2+100 && x<=g_winx/2+200){
+			// Clan Attributes buttons
+			if (y>=g_winy/2-250 && y<=g_winy/2-220){
+				// Stamina
+				if (g_clan->gold >= 10){
+					g_clan->gold -= 10;
+					g_clan->stamina += 1;
+					sprintf(clan,CLANFROMAT,g_clan->size, g_clan->nbGroups, g_clan->gold, g_clan->stamina, g_clan->attack, g_clan->defense, g_clan->culture);
+					SetCaption("Stamina attribute increased.");
+				} else {
+					SetCaption("Not enough gold.");
+				}
+			} else if (y>=g_winy/2-153 && y<=g_winy/2-123) {
+				// Attack
+				if (g_clan->gold >= 10){
+					g_clan->gold -= 10;
+					g_clan->attack += 1;
+					sprintf(clan,CLANFROMAT,g_clan->size, g_clan->nbGroups, g_clan->gold, g_clan->stamina, g_clan->attack, g_clan->defense, g_clan->culture);
+					SetCaption("Attack attribute increased.");
+				} else {
+					SetCaption("Not enough gold.");
+				}
+			} else if (y>=g_winy/2-65 && y<=g_winy/2-35) {
+				// Defense
+				if (g_clan->gold >= 10){
+					g_clan->gold -= 10;
+					g_clan->defense += 1;
+					sprintf(clan,CLANFROMAT,g_clan->size, g_clan->nbGroups, g_clan->gold, g_clan->stamina, g_clan->attack, g_clan->defense, g_clan->culture);
+					SetCaption("Defense attribute increased.");
+				} else {
+					SetCaption("Not enough gold.");
+				}
+			} else if (y>=g_winy/2+30 && y<=g_winy/2+60) {
+				// Culture
+				if (g_clan->gold >= 10){
+					g_clan->gold -= 10;
+					g_clan->culture += 1;
+					sprintf(clan,CLANFROMAT,g_clan->size, g_clan->nbGroups, g_clan->gold, g_clan->stamina, g_clan->attack, g_clan->defense, g_clan->culture);
+					SetCaption("Culture attribute increased.");
+				} else {
+					SetCaption("Not enough gold.");
+				}
+			}
+		} else if (x>=fontfgp.left && x<=fontfgp.right) {
+			int k = (y+fedlistscale/2-fontfgp.top)/fedlistscale;
+			if (k>=0 && k<fedlistlen){
+				Offer(fedclans[k]);
+			}
+		} else if (x>=fontnfgp.left && x<=fontnfgp.right) {
+			int k = (y+nfedlistscale/2-fontnfgp.top)/nfedlistscale;
+			if (k>=0 && k<nfedlistlen){
+				Offer(nfedclans[k]);
+			}
+		}
+		if (y>=g_winy/2+245 && y<=g_winy/2+280 && x>=g_winx/2+120 && x<=g_winx/2+180) {
+			// Close button
+			goldpanel = false;
+			getmouse = false;
+		}
+	}
+	if (x<300 && y >= 397 && y <= 493){
 		if (x<104){
 			// Dig
 			if (g_nbSelected==1){
@@ -373,6 +606,10 @@ void Hud::Click(int x, int y){
 			}
 		} else if (x>196) {
 			// Attack
+			if (goldpanel) {
+				goldpanel = false;
+				getmouse = false;
+			}
 			if (g_nbSelected){
 				g_game.attacking = !g_game.attacking;
 				if (attackpanel){
@@ -390,7 +627,17 @@ void Hud::Click(int x, int y){
 			}
 		} else {
 			// Gold
-			;
+			if (attackpanel) {
+				attackpanel = false;
+				SetCaption("Attack cancelled.");
+			} else if (resultpanel) {
+				resultpanel = false;
+				attackpanel = false;
+			}
+			goldpanel = ! goldpanel;
+			if (goldpanel){
+				GoldPanel();
+			}
 		}
 	} else if (y >= 560){
 		if (y<=590 && x>=60 && x<=240 && g_nbSelected==1){
@@ -420,20 +667,59 @@ void Hud::Click(int x, int y){
 	}
 }
 //---------------------------------------------------------
+void Hud::Offer(Clan* c){
+	offer = true;
+	sprintf(offertitle, "Making an offer to %s", c->name);
+}
+//---------------------------------------------------------
+void Hud::GoldPanel(){
+	getmouse = true;
+	int a=0;
+	int b=0;
+	for (int i=0; i<g_clan->id; ++i){
+		if (g_clans[i]->fed == g_clan->fed){
+			sprintf(nfedliststances[a], "%3.2f%%", g_stances[g_clans[i]->id][g_clan->id]);
+			fedclans[a] = g_clans[i];
+			fedliststr[a++] = g_clans[i]->name;
+
+		} else {
+			sprintf(fedliststances[b], "%3.2f%%", g_stances[g_clans[i]->id][g_clan->id]);
+			nfedclans[b] = g_clans[i];
+			nfedliststr[b++] = g_clans[i]->name;
+		}
+	}
+	for (int i=g_clan->id+1; i<g_nbClans; ++i){
+		if (g_clans[i]->fed == g_clan->fed){
+			sprintf(fedliststances[a], "%3.2f%%", g_stances[g_clans[i]->id][g_clan->id]);
+			fedclans[a] = g_clans[i];
+			fedliststr[a++] = g_clans[i]->name;
+
+		} else {
+			sprintf(nfedliststances[b], "%3.2f%%", g_stances[g_clans[i]->id][g_clan->id]);
+			nfedclans[b] = g_clans[i];
+			nfedliststr[b++] = g_clans[i]->name;
+		}
+	}
+	fedlistlen = a;
+	nfedlistlen = b;
+	fedlistscale = 580/(fedlistlen+1);
+	nfedlistscale = 580/(nfedlistlen+1);
+}
+//---------------------------------------------------------
 void Hud::AttackPanel(int x, int z){
 	attackpanel = true;
+	getmouse = true;
 	Group* g = NULL;
-	Group* ag = g_board[x*g_side+z];
-	sprintf(attacktitle, "\nAttacking %s group of %.0f units", ag->clan->name, ag->size);
+	enemy = g_board[x*g_side+z];
+	dpow = enemy->size * enemy->clan->defense;
+	sprintf(attacktitle, "Attacking %s group of %.0f units", enemy->clan->name, enemy->size);
 	apow = 0;
 	for (int i=g_nbSelected-1; i>=0; --i){
 		g = g_selected[i];
-		attackstam[i] = g->stamina-g->planed;
-		apow += attackstam[i]*g->size;
-		sprintf(attackstr[i][0], "%sGroup %d: %.0f units with %.2f stamina available.", apstrs[i] , i+1, g->size, g->stamina-g->planed);
-		sprintf(attackstr[i][1], "%s+++ \nStamina to use: %3.0f%%\n--- ", apstrs[i]+1, (attackstam[i]*100)/g->stamina-g->planed);
+		apow += g->size;
+		sprintf(attackstr[i], "%sGroup %d: %.0f units", apstrs[i] , i+1, g->size);
 	}
-	sprintf(attackrez, "%s%s       Total attack power: %.2f x %.0f x %.1f = %.2f", apstrs[3], apstrs[0], apow, g->clan->attack, attackbonus[g_nbSelected], apow * attackbonus[g_nbSelected] * g->clan->attack);
+	sprintf(attackrez, "%s\n\n\n        Total attack power: %.0f x %.0f x %.1f = %.1f", apstrs[7], apow, g->clan->attack, attackbonus[g_nbSelected], apow * attackbonus[g_nbSelected] * g->clan->attack);
 	apow *= attackbonus[g_nbSelected] * g->clan->attack;
 }
 //---------------------------------------------------------
@@ -575,7 +861,6 @@ void Hud::RenderText(){
 //---------------------------------------------------------
 void Hud::Render(){
 	if (show) {
-	
 		g_device->SetFVF(VERT2DC);
 		g_device->SetStreamSource(0,back_vb,0,sizeof(s_vert2dc));
 		g_device->DrawPrimitive(D3DPT_TRIANGLESTRIP,0,2);
@@ -608,16 +893,61 @@ void Hud::Render(){
 			font->DrawText(NULL,attacktitle,-1,&fontap, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
 			if (resultpanel){
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,19,4);
+				font->DrawText(NULL,attackrez,-1,&fontap, DT_VCENTER | DT_CENTER | DT_NOCLIP,0xffffffff);
 				font->DrawText(NULL,"Close",-1,&fontap, DT_BOTTOM | DT_CENTER | DT_NOCLIP,0xffffffff);
 			} else {
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,9,4);
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,14,4);
 				for (int i=g_nbSelected-1; i>=0; --i){
-					font->DrawText(NULL,attackstr[i][0],-1,&fontap, DT_TOP | DT_LEFT | DT_NOCLIP,0xffffffff);
-					font->DrawText(NULL,attackstr[i][1],-1,&fontap, DT_TOP | DT_RIGHT | DT_NOCLIP,0xffffffff);
+					font->DrawText(NULL,attackstr[i],-1,&fontap, DT_TOP | DT_LEFT | DT_NOCLIP,0xffffffff);
 				}
 				font->DrawText(NULL,attackrez,-1,&fontap, DT_TOP | DT_LEFT | DT_NOCLIP,0xffffffff);
 				font->DrawText(NULL,"Cancel           Attack",-1,&fontap, DT_BOTTOM | DT_CENTER | DT_NOCLIP,0xffffffff);
+			}
+		} else if (goldpanel) {
+			g_device->SetStreamSource(0,gp_vb,0,sizeof(s_vert2dc));
+			g_device->DrawPrimitive(D3DPT_TRIANGLESTRIP,0,2);
+			g_device->DrawPrimitive(D3DPT_LINESTRIP,4,4);
+			g_device->DrawPrimitive(D3DPT_LINESTRIP,9,4);
+			font->DrawText(NULL,"Close",-1,&fontgp, DT_BOTTOM | DT_CENTER | DT_NOCLIP,0xffffffff);
+
+			if (offer) {	
+				font->DrawText(NULL,offertitle,-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
+				font->DrawText(NULL,"\n\n\n\n\n\n\n\n\nGold Offer",-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
+				font->DrawText(NULL,"\n\nPeace Offer\n\n\n\n\n\n\n\nFederate",-1,&fontgp, DT_VCENTER | DT_CENTER | DT_NOCLIP,0xffffffff);
+				g_device->SetStreamSource(0,of_vb,0,sizeof(s_vert2dc));
+				g_device->DrawPrimitive(D3DPT_LINESTRIP,0,4);
+				g_device->DrawPrimitive(D3DPT_LINESTRIP,5,4);
+				g_device->DrawPrimitive(D3DPT_LINESTRIP,10,4);
+			} else {
+				g_device->DrawPrimitive(D3DPT_LINELIST,14,2);
+				g_device->DrawPrimitive(D3DPT_LINESTRIP,18,4);
+				g_device->DrawPrimitive(D3DPT_LINESTRIP,23,4);
+				g_device->DrawPrimitive(D3DPT_LINESTRIP,28,4);
+				g_device->DrawPrimitive(D3DPT_LINESTRIP,33,4);
+				font->DrawText(NULL,"Gold & Diplomacy\n\n\n\nCost: 10 Gold\n\n\n\nStamina\n\n\n\n\n\nAttack",-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
+				font->DrawText(NULL,"\n\n\nIntra-federation                Clan attributes                Extra-federation",-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
+				font->DrawText(NULL,"\n\n\n\n\n\nDefense\n\n\n\n\n\nCulture",-1,&fontgp, DT_VCENTER | DT_CENTER | DT_NOCLIP,0xffffffff);
+
+				vfontgp.top = fontfgp.top;
+				vfontgp.bottom = fontfgp.bottom;
+				vfontgp.left = fontfgp.left;
+				vfontgp.right = fontfgp.right;
+				for (int i=0; i<fedlistlen; ++i){
+					font->DrawText(NULL,fedliststr[i],-1,&vfontgp, DT_TOP | DT_LEFT | DT_NOCLIP,0xffffffff);
+					font->DrawText(NULL,fedliststances[i],-1,&vfontgp, DT_TOP | DT_RIGHT | DT_NOCLIP,0xffffffff);
+					vfontgp.top += fedlistscale;
+				}
+
+				vfontgp.top = fontnfgp.top;
+				vfontgp.bottom = fontnfgp.bottom;
+				vfontgp.left = fontnfgp.left;
+				vfontgp.right = fontnfgp.right;
+				for (int i=0; i<nfedlistlen; ++i){
+					font->DrawText(NULL,nfedliststr[i],-1,&vfontgp, DT_TOP | DT_LEFT | DT_NOCLIP,0xffffffff);
+					font->DrawText(NULL,nfedliststances[i],-1,&vfontgp, DT_TOP | DT_RIGHT | DT_NOCLIP,0xffffffff);
+					vfontgp.top += nfedlistscale;
+				}
 			}
 		}
 
