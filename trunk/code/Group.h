@@ -5,6 +5,7 @@ class Clan;
 //---------------------------------------------------------
 class Group {
 public:
+	int			id;
 	Clan*		clan;
 	bool		mining;
 	double	size;
@@ -13,9 +14,10 @@ public:
 	int			x;
 	int			z;
 
-	Group(int _x, int _z, double _size, Clan* _clan);
+	Group(int _id, int _x, int _z, double _size, Clan* _clan);
 	~Group();
 	void Render();
+	void Kill(double bodycount);
 	void MarkPosition();
 	void RenderSelection();
 	void SetVizibility();

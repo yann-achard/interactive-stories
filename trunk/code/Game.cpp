@@ -307,12 +307,18 @@ void Game::InitGame(void){
 		g_clans[i] = new Clan(i,x,z,100);
 		g_pop += g_clans[i]->size;
 	}
+	g_stances = new float*[g_nbClans];
+	for (int i=g_nbClans-1; i>=0; --i){
+		g_stances[i] = new float[g_nbClans];
+		ZeroMemory(g_stances[i], g_nbClans*sizeof(float));
+	}
+
 	g_selectedpop = 0;
 	g_clan = g_clans[0];
 	g_clan->SetVizibility();
 	g_pos.set(-g_clan->groups[0]->x*g_hgap+g_map->hspan/2.0f,-g_map->vspan-3000,-g_clan->groups[0]->z*g_hgap+g_map->hspan/1.5f);
 	g_rot.set(-1.0f,0,0);	
-	g_hud = new Hud(g_device);
+	g_hud = new Hud();
 	g_hud->UpdateText();
 }
 //---------------------------------------------------------
@@ -819,7 +825,7 @@ void Game::LeftButtonDown(int w, int l){
 		ScreenToClient(hWindow,&p);
 	}
 	
-	if (p.x < 300 || g_hud->attackpanel){
+	if (p.x < 300 || g_hud->getmouse){
 		g_hud->Click(p.x,p.y);
 		return;
 	}
@@ -850,7 +856,7 @@ void Game::LeftButtonUp(int w, int l){
 	
 	//int px = LOWORD(l);
 	//int py = HIWORD(l);
-	if (p.x < 300 || g_hud->attackpanel){
+	if (p.x < 300 || g_hud->getmouse){
 		return;
 	}
 	int xmin, xmax, zmin, zmax;
@@ -928,7 +934,16 @@ void Game::RightButtonDown(int w, int l){
 	}
 	if (g_hud->attackpanel){
 		g_hud->attackpanel = false;
+		g_hud->getmouse = false;
 		return;
+	} else if (g_hud->resultpanel) {
+		g_hud->resultpanel = false;
+		g_hud->attackpanel = false;
+		g_hud->getmouse = false;
+		return;
+	} else if (g_hud->goldpanel) {
+		g_hud->goldpanel = false;
+		g_hud->getmouse = false;
 	}
 	g_mousebut[2] = true;
 	if (g_nbSelected && (w&MK_CONTROL)!=MK_CONTROL){
@@ -988,11 +1003,8 @@ void Game::MouseWheel(int key){
 }
 //---------------------------------------------------------
 void Game::MouseMove(int mod, int x, int y){
-	if (g_hud->attackpanel){
-		POINT p;
-		GetCursorPos(&p);
-		sprintf(cursorpos, "x: %4d y: %4d", p.x, p.y);
-		g_hud->SetCaption(cursorpos);
+	if (g_hud->getmouse){
+		return;
 	}
 	static int sx;
 	static int sy;

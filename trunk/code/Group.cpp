@@ -5,7 +5,8 @@
 #include "Clan.h"
 #include "Group.h"
 //---------------------------------------------------------
-Group::Group(int _x, int _z, double _size, Clan* _clan){
+Group::Group(int _id, int _x, int _z, double _size, Clan* _clan){
+	id = _id;
 	x = _x;
 	z = _z;
 	size = _size;
@@ -17,6 +18,21 @@ Group::Group(int _x, int _z, double _size, Clan* _clan){
 }
 //---------------------------------------------------------
 Group::~Group(){
+	g_board[x*g_side+z] = 0;
+	if (clan == g_clan){
+		ResetVizibility();
+	}
+}
+//---------------------------------------------------------
+void Group::Kill(double bodycount){
+	g_pop -= bodycount;
+	clan->size -= bodycount;
+	if (bodycount >= size){
+		clan->KillGroup(id);
+		return;
+	}
+	size -= bodycount;
+	g_hud->UpdateText();
 }
 //---------------------------------------------------------
 void Group::SetVizibility(){

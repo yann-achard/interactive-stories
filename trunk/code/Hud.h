@@ -5,6 +5,9 @@
 #include <d3dx9.h>
 #include "d3ddefs.h"
 //---------------------------------------------------------
+class Group;
+class Clan;
+//---------------------------------------------------------
 #define FPSFROMAT "%3d fps"
 #define TURNFROMAT "Turn%9d  <End Turn>"
 #define GLOBFROMAT "\n\nClans           %10d\nPopulation %15.0f\nFederations%15d"
@@ -16,6 +19,7 @@ class Hud {
 public:
 
 	bool								show;
+	bool								getmouse;
 	s_vert2dc*					back;
 	VBUF								back_vb;
 	s_vert2dc*					lines;
@@ -58,22 +62,51 @@ public:
 	char								spstr[64];
 	double							spnum;
 	bool								attackpanel;
+	bool								goldpanel;
 	bool								resultpanel;
-	char								attacktitle[256];
-	char								attackstr[4][2][128];
-	double							attackstam[4];
+	char								attacktitle[128];
+	char								attackstr[8][128];
 	double							apow;
-	char								attackrez[256];		
+	double							dpow;
+	Group*							enemy;
+	char								attackrez[128];		
 	VBUF								ap_vb;
 	s_vert2dc*					ap;
 	RECT								fontap;
+	VBUF								gp_vb;
+	s_vert2dc*					gp;
+	RECT								fontgp;
+	RECT								vfontgp;
+	RECT								fontfgp;
+	RECT								fontnfgp;
+	int									fedlistlen;
+	int									nfedlistlen;
+	char**							fedliststr;
+	char**							nfedliststr;
+	char**							fedliststances;
+	char**							nfedliststances;
+	int									fedlistscale;
+	int									nfedlistscale;
+	Clan**							fedclans;
+	Clan**							nfedclans;
+	bool								offer;
+	char								offertitle[128];
+	VBUF								of_vb;
+	s_vert2dc*					of;
+	bool								goldoffer;
 
 
-	Hud(LPDIRECT3DDEVICE9& device);
+	Hud();
 	~Hud();
 
+	void InitLeftPanel();
+	void InitAttackPanel();
+	void InitGoldPanel();
+	void InitOffer();
 	void Update(float time, float dt);
 	void AttackPanel(int x, int z);
+	void GoldPanel();
+	void Offer(Clan* c);
 	void SetCaption(char* str);
 	void CaptionOff();
 	void Click(int x, int y);

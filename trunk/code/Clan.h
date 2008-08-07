@@ -22,9 +22,14 @@ public:
 	double	defense;
 	double	culture;
 
+	int			nbFedClans;
+	Clan**	fed;
+	int			fid;
+
 
 	Clan(int _id, int x, int z, double _size);
 	~Clan();
+	void KillGroup(int gid);
 	void AddGroup(int x, int z, double _size);
 	void MergeGroups(Group* g1, Group* g2);
 	void MarkGroupsPositions();
