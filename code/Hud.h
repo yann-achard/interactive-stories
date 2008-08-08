@@ -60,7 +60,7 @@ public:
 	s_vert2dc*					sp;
 	RECT								fontsp;
 	char								spstr[64];
-	double							spnum;
+	unsigned int				spnum;
 	bool								attackpanel;
 	bool								goldpanel;
 	bool								resultpanel;
@@ -89,11 +89,13 @@ public:
 	int									nfedlistscale;
 	Clan**							fedclans;
 	Clan**							nfedclans;
+	Clan*								destclan;
 	bool								offer;
 	char								offertitle[128];
 	VBUF								of_vb;
 	s_vert2dc*					of;
 	bool								goldoffer;
+	char								fedrez[128];
 
 
 	Hud();
@@ -106,7 +108,7 @@ public:
 	void Update(float time, float dt);
 	void AttackPanel(int x, int z);
 	void GoldPanel();
-	void Offer(Clan* c);
+	void Offer();
 	void SetCaption(char* str);
 	void CaptionOff();
 	void Click(int x, int y);

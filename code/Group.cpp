@@ -2,6 +2,8 @@
 #include "d3ddefs.h"
 #include "main.h"
 #include "Game.h"
+#include "Map.h"
+#include "Hud.h"
 #include "Clan.h"
 #include "Group.h"
 //---------------------------------------------------------
@@ -75,6 +77,18 @@ void Group::MoveTo(int _x, int _z){
 	x = _x;
 	z = _z;
 	SetVizibility();
+}
+//---------------------------------------------------------
+bool Group::IsNextTo(Clan *c){
+	if (x>0 && g_board[(x-1)*g_side+z] && g_board[(x-1)*g_side+z]->clan==c) return (true);
+	if (z>0 && g_board[x*g_side+z-1] && g_board[x*g_side+z-1]->clan==c) return (true);
+	if (x+1<g_side && g_board[(x+1)*g_side+z] && g_board[(x+1)*g_side+z]->clan==c) return (true);
+	if (z+1<g_side && g_board[x*g_side+z+1] && g_board[x*g_side+z+1]->clan==c) return (true);
+	if (x>0 && z>0 && g_board[(x-1)*g_side+z-1] && g_board[(x-1)*g_side+z-1]->clan==c) return (true);
+	if (x>0 && z+1<g_side && g_board[(x-1)*g_side+z+1] && g_board[(x-1)*g_side+z+1]->clan==c) return (true);
+	if (x+1<g_side && z>0 && g_board[(x+1)*g_side+z-1] && g_board[(x+1)*g_side+z-1]->clan==c) return (true);
+	if (x+1<g_side && z+1<g_side && g_board[(x+1)*g_side+z+1] && g_board[(x+1)*g_side+z+1]->clan==c) return (true);
+	return (false);
 }
 //---------------------------------------------------------
 void Group::MarkPosition(){

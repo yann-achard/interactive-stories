@@ -1,16 +1,16 @@
 #include "main.h"
 #include "Clan.h"
+#include "Hud.h"
 #include "Group.h"
 #include "Names.h"
+#include "Federation.h"
 //---------------------------------------------------------
 Clan::Clan(int _id, int x, int z, double _size){
 	id = _id;
 	name = g_names[id];
 	size = _size;
-	nbFedClans = 1;
 	fid = 0;
-	fed = new Clan*[1];
-	fed[0] = this;
+	fed = new Federation(this);
 	nbGroups = 1;
 	gold = 100;
 	stamina = STAMINA+100;
@@ -22,18 +22,42 @@ Clan::Clan(int _id, int x, int z, double _size){
 }
 //---------------------------------------------------------
 Clan::~Clan(){
-	for (int i=0; i<nbFedClans; ++i){
-		--fed[i]->nbFedClans;
-	}
-	fed[nbFedClans]->fid = fid;
-	fed[fid] = fed[nbFedClans];
-	if (nbFedClans==0) {
-		delete fed;
-	}
+	fed->RemoveClan(fid);
 	for (int i=nbGroups-1; i>=0; --i){
 		delete groups[i];
 	}
 	delete groups;
+}
+//---------------------------------------------------------
+bool Clan::FederateVote(Clan* c, char* res){
+	return true;
+}
+//---------------------------------------------------------
+bool Clan::RecieveFederationOffer(Clan* c){
+	return true;
+}
+//---------------------------------------------------------
+void Clan::AddToFederation(Clan *c){
+	c->fed->RemoveClan(c->fid);
+	fed->AddClan(c);
+}
+//---------------------------------------------------------
+bool Clan::IsNextTo(Clan* c){
+	if (nbGroups > c->nbGroups) return (c->IsNextTo(this));
+	for (int i=0; i<nbGroups; ++i){
+		if (groups[i]->IsNextTo(c)) return (true);
+	}
+	return (false);
+}
+//---------------------------------------------------------
+bool Clan::RecievePeaceOffer(Clan* c){
+	g_stances[id][c->id] = 80.0f;
+	return (true);
+}
+//---------------------------------------------------------
+bool Clan::RecieveGoldOffering(double amount, Clan* donor){
+	gold += amount;
+	return (true);
 }
 //---------------------------------------------------------
 void Clan::KillGroup(int gid){

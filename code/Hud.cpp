@@ -1,4 +1,9 @@
 #include "Hud.h"
+#include "Group.h"
+#include "Clan.h"
+#include "Game.h"
+#include "Map.h"
+#include "Federation.h"
 #include "d3ddefs.h"
 #include "main.h"
 //---------------------------------------------------------
@@ -512,7 +517,13 @@ void Hud::Click(int x, int y){
 		attackpanel = false;
 		getmouse = false;
 	}
-	if (offer) {
+	if (goldoffer) {
+		if (y>=g_winy/2+245 && y<=g_winy/2+280 && x>=g_winx/2+120 && x<=g_winx/2+180) {
+			// Close button
+			goldoffer = false;
+			goldpanel = true;
+		}
+	} else if (offer) {
 		if (y>=g_winy/2+245 && y<=g_winy/2+280 && x>=g_winx/2+120 && x<=g_winx/2+180) {
 			// Close button
 			offer = false;
@@ -520,13 +531,38 @@ void Hud::Click(int x, int y){
 			// Buttons area
 			if (y>=g_winy/2-233 && y<=g_winy/2-203) {
 				// Gold offer
+				offer = false;
 				goldoffer = true;
-			} else if (y>=g_winy/2-112 && y<=g_winy/2-182){
+				spstr[0] = '|';
+				spstr[1] = 0;
+				spnum = 0;
+			} else if (y>=g_winy/2-112 && y<=g_winy/2-82){
 				// Peace offer
-				;/// ! ///
+				if (destclan->RecievePeaceOffer(g_clan)){
+					SetCaption("Peace offer accepted.");
+				} else {
+					SetCaption("Peace offer rejected.");
+				}
+				offer = false;
+				goldpanel = true;
 			} else if (y>=g_winy/2+15 && y<=g_winy/2+45){
 				// Federate
-				;/// ! ///
+				if (g_clan->FederateVote(destclan, fedrez)){
+					if (g_clan->IsNextTo(destclan)){
+						if (destclan->RecieveFederationOffer(g_clan)){
+							SetCaption("Clan successfully federated.");
+							g_clan->AddToFederation(destclan);
+							UpdateText();
+							GoldPanel();
+						} else {
+							SetCaption("The clan refused your offer.");
+						}
+					} else {
+						SetCaption("The clan would be accepted, send a group to make the proposal.");
+					}
+				} else {
+					SetCaption(fedrez);
+				}
 			}
 		}
 	} else if (goldpanel){
@@ -576,12 +612,14 @@ void Hud::Click(int x, int y){
 		} else if (x>=fontfgp.left && x<=fontfgp.right) {
 			int k = (y+fedlistscale/2-fontfgp.top)/fedlistscale;
 			if (k>=0 && k<fedlistlen){
-				Offer(fedclans[k]);
+				destclan = fedclans[k];
+				Offer();
 			}
 		} else if (x>=fontnfgp.left && x<=fontnfgp.right) {
 			int k = (y+nfedlistscale/2-fontnfgp.top)/nfedlistscale;
 			if (k>=0 && k<nfedlistlen){
-				Offer(nfedclans[k]);
+				destclan = nfedclans[k];
+				Offer();
 			}
 		}
 		if (y>=g_winy/2+245 && y<=g_winy/2+280 && x>=g_winx/2+120 && x<=g_winx/2+180) {
@@ -641,6 +679,7 @@ void Hud::Click(int x, int y){
 		}
 	} else if (y >= 560){
 		if (y<=590 && x>=60 && x<=240 && g_nbSelected==1){
+			SetCaption("Enter subgroup size");
 			subpopup = !subpopup;
 			spstr[0] = '|';
 			spstr[1] = 0;
@@ -667,9 +706,9 @@ void Hud::Click(int x, int y){
 	}
 }
 //---------------------------------------------------------
-void Hud::Offer(Clan* c){
+void Hud::Offer(){
 	offer = true;
-	sprintf(offertitle, "Making an offer to %s", c->name);
+	sprintf(offertitle, "Making an offer to %s", destclan->name);
 }
 //---------------------------------------------------------
 void Hud::GoldPanel(){
@@ -801,15 +840,26 @@ void Hud::UpdateSelect(){
 void Hud::UpdateText(){
 	Clan& c = *g_clan;
 	sprintf(glob,GLOBFROMAT,g_nbClans, g_pop, g_nbFeds);
-	sprintf(fed,FEDFROMAT, 1, c.size, (c.size*100)/g_pop);
+	sprintf(fed,FEDFROMAT, c.fed->nb, c.fed->pop, (c.fed->pop*100)/g_pop);
 	sprintf(clan,CLANFROMAT,c.size, c.nbGroups, c.gold, c.stamina, c.attack, c.defense, c.culture);
 	sprintf(turn,TURNFROMAT,g_turn);
 }
 //---------------------------------------------------------
 void Hud::PopupEnter(){
 	if (spnum){
-		g_selected[0]->Subgroup(spnum);
-		g_selectedpop = spnum;
+		if (goldoffer){
+			goldoffer = false;
+			offer = false;
+			if (destclan->RecieveGoldOffering(spnum, g_clan)){
+				g_clan->gold -= spnum;
+				SetCaption("Offer accepted");
+			} else {
+				SetCaption("Offer refused");
+			}
+		} else {
+			g_selected[0]->Subgroup(spnum);
+			g_selectedpop = spnum;
+		}
 		UpdateText();
 		UpdateSelect();
 	}
@@ -822,13 +872,14 @@ void Hud::PopupDelete(){
 	if (i>1){
 		spstr[i-2] = '|';
 		spstr[i-1] = 0;
+		//spnum -= spnum % 10;
 		spnum /= 10;
 	}
 }
 //---------------------------------------------------------
 void Hud::PopupText(int key){
-	double nextnum = spnum*10 + key;
-	if (nextnum < g_selectedpop){
+	unsigned int nextnum = spnum*10 + key;
+	if ((goldoffer && nextnum<=g_clan->gold) || nextnum<g_selectedpop){
 		int i;
 		for (i=0; spstr[i]; ++i);
 		spstr[i-1] = '0'+key;
@@ -911,7 +962,7 @@ void Hud::Render(){
 			g_device->DrawPrimitive(D3DPT_LINESTRIP,9,4);
 			font->DrawText(NULL,"Close",-1,&fontgp, DT_BOTTOM | DT_CENTER | DT_NOCLIP,0xffffffff);
 
-			if (offer) {	
+			if (offer) {
 				font->DrawText(NULL,offertitle,-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
 				font->DrawText(NULL,"\n\n\n\n\n\n\n\n\nGold Offer",-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
 				font->DrawText(NULL,"\n\nPeace Offer\n\n\n\n\n\n\n\nFederate",-1,&fontgp, DT_VCENTER | DT_CENTER | DT_NOCLIP,0xffffffff);
@@ -919,6 +970,10 @@ void Hud::Render(){
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,0,4);
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,5,4);
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,10,4);
+			} else if (goldoffer){
+				font->DrawText(NULL,offertitle,-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
+				font->DrawText(NULL,"\n\n\n\n\n\n\n\n\nGold Offer",-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
+				font->DrawText(NULL,spstr,-1,&fontgp, DT_VCENTER | DT_CENTER | DT_NOCLIP,0xffffffff);
 			} else {
 				g_device->DrawPrimitive(D3DPT_LINELIST,14,2);
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,18,4);

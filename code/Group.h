@@ -16,6 +16,7 @@ public:
 
 	Group(int _id, int _x, int _z, double _size, Clan* _clan);
 	~Group();
+	bool IsNextTo(Clan* c);
 	void Render();
 	void Kill(double bodycount);
 	void MarkPosition();
