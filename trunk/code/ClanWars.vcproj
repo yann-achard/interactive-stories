@@ -75,7 +75,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="odbc32.lib odbccp32.lib d3d9.lib d3dx9.lib comctl32.lib"
 				OutputFile=".\Debug/ClanWars.exe"
-				LinkIncremental="1"
+				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/ClanWars.pdb"
@@ -168,7 +168,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="d3d9.lib d3dx9.lib "
 				OutputFile=".\Release/ClanWars.exe"
-				LinkIncremental="1"
+				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				ProgramDatabaseFile=".\Release/dxgraphics04.pdb"
 				SubSystem="2"
@@ -207,7 +207,15 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
+				RelativePath=".\AiCLan.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Clan.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Federation.cpp"
 				>
 			</File>
 			<File
@@ -278,11 +286,19 @@
 			Filter="h;hpp;hxx;hm;inl"
 			>
 			<File
+				RelativePath=".\AiClan.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Clan.h"
 				>
 			</File>
 			<File
 				RelativePath="d3ddefs.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Federation.h"
 				>
 			</File>
 			<File

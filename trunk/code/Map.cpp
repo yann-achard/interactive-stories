@@ -1,8 +1,9 @@
 //---------------------------------------------------------
 #include <time.h>
-#include "random.h"
 #include <math.h>
+#include "random.h"
 #include "main.h"
+#include "Game.h"
 #include "Map.h"
 #include "helpers.h"
 //---------------------------------------------------------

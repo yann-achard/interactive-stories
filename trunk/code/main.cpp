@@ -1,4 +1,6 @@
 #include "main.h"
+#include "Game.h"
+#include "Vec3Df.h"
 //---------------------------------------------------------
 // DISPLAY //
  float				g_winx;

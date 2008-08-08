@@ -1,5 +1,8 @@
 #include "main.h"
 #include "random.h"
+#include "Group.h"
+#include "Hud.h"
+#include "Game.h"
 #include "Clan.h"
 #include "Map.h"
 //---------------------------------------------------------
@@ -279,7 +282,6 @@ void Game::InitGame(void){
 
 	g_nbAlly = 0;
 	g_nbClans = 0;
-	g_nbFeds = 0;
 	g_nbEnemy = 0;
 	g_nbNeutral = 0;
 	g_nbSelected = 0;
@@ -295,6 +297,7 @@ void Game::InitGame(void){
 
 
 	g_nbClans = 10;
+	g_nbFeds = 0;
 	g_clans = new Clan*[MAX_CLANS];
 	g_pop = 0;
 	for (int i=g_nbClans-1; i>=0; --i){
@@ -781,9 +784,9 @@ void Game::Hover(int x, int z){
 //---------------------------------------------------------
 void Game::KeyDown(int key){
  	if ((key>=96 && key<=105) || (key>=48 && key<=57) || key==13 || key==8 || key==46){
-		if (!g_hud->subpopup){
-			g_hud->Click(150,575);
+		if (!g_hud->subpopup && !g_hud->goldoffer){
 			if (key==13) return;
+			g_hud->Click(150,575);
 		}
 		if (key==13){
 			g_hud->PopupEnter();

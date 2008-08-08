@@ -9,13 +9,12 @@
 //---------------------------------------------------------
 using namespace std;
 //---------------------------------------------------------
-#include "Game.h"
-#include "d3ddefs.h"
-#include "Vec3Df.h"
-#include "Group.h"
-#include "Clan.h"
-#include "Hud.h"
-#include "Map.h"
+class Game;
+class Vec3Df;
+class Clan;
+class Hud;
+class Group;
+class Map;
 //---------------------------------------------------------
 #define TITLE				"Clan Wars"
 #define WINDOW_X		1680

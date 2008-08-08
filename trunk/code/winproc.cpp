@@ -1,4 +1,5 @@
-#include"main.h"
+#include "main.h"
+#include "Game.h"
 //---------------------------------------------------------
 LRESULT CALLBACK WindowProcedure(HWND hWindow,UINT uMessage,WPARAM wparam,LPARAM lparam){
 	switch (uMessage){
