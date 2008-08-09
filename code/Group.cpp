@@ -2,6 +2,7 @@
 #include "d3ddefs.h"
 #include "main.h"
 #include "Game.h"
+#include "Federation.h"
 #include "Map.h"
 #include "Hud.h"
 #include "Clan.h"
@@ -21,6 +22,12 @@ Group::Group(int _id, int _x, int _z, double _size, Clan* _clan){
 //---------------------------------------------------------
 Group::~Group(){
 	g_board[x*g_side+z] = 0;
+	for (int i=g_nbSelected-1; i>=0; --i){
+		if (g_selected[i] == this){
+			g_selected[i] = g_selected[--g_nbSelected];
+			break;
+		}
+	}
 	if (clan == g_clan){
 		ResetVizibility();
 	}
@@ -29,6 +36,7 @@ Group::~Group(){
 void Group::Kill(double bodycount){
 	g_pop -= bodycount;
 	clan->size -= bodycount;
+	clan->fed->pop -= bodycount;
 	if (bodycount >= size){
 		clan->KillGroup(id);
 		return;

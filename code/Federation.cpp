@@ -13,7 +13,6 @@ Federation::Federation(Clan *clan){
 }
 //---------------------------------------------------------
 Federation::~Federation(){
-	--g_nbFeds;
 	delete clans;
 }
 //---------------------------------------------------------
@@ -32,10 +31,6 @@ void Federation::AddClan(Clan* clan){
 //---------------------------------------------------------
 void Federation::RemoveClan(int cid){
 	pop -= clans[cid]->size;
-	clans[cid]->fed = 0;
 	clans[cid] = clans[--nb];
 	clans[cid]->fid = cid;
-	if (nb == 0){
-		delete this;
-	}
 }

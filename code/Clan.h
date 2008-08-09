@@ -1,13 +1,10 @@
 #ifndef __CLAN_H__
 #define __CLAN_H__
 //---------------------------------------------------------
+#include "Vec3Df.h"
+//---------------------------------------------------------
 class Group;
 class Federation;
-//---------------------------------------------------------
-#define STAMINA	1.0f
-#define ATTACK	1.0f
-#define DEFENSE	1.0f
-#define CULTURE	1.0f
 //---------------------------------------------------------
 class Clan {
 public:
@@ -26,10 +23,13 @@ public:
 	Federation*	fed;
 	int					fid;
 
+	Vec3Df			compass;
 
 	Clan(int _id, int x, int z, double _size);
 	~Clan();
 
+	void KillClan();
+	void UpgradeStamina();
 	bool IsNextTo(Clan* c);
 	void AddToFederation(Clan* c);
 	bool FederateVote(Clan* c, char* res);
