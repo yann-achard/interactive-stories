@@ -2,6 +2,7 @@
 #include "Clan.h"
 #include "Hud.h"
 #include "Group.h"
+#include "random.h"
 #include "Names.h"
 #include "Federation.h"
 //---------------------------------------------------------
@@ -11,18 +12,36 @@ Clan::Clan(int _id, int x, int z, double _size){
 	size = _size;
 	fid = 0;
 	fed = new Federation(this);
+	compass.set(random01()*18.0f,random01()*18.0f,random01()*18.0f);
 	nbGroups = 1;
-	gold = 100;
-	stamina = STAMINA+100;
-	attack = ATTACK;
-	defense = DEFENSE;
-	culture = CULTURE;
+	gold = 10000;
+	stamina = 1;
+	attack = 1;
+	defense = 1;
+	culture = 1;
 	groups = new Group*[nbGroups];
 	groups[0] = new Group(0, x, z, size, this);
 }
 //---------------------------------------------------------
 Clan::~Clan(){
+	if (fed && fed->nb == 0){
+		delete fed;
+	}
+}
+//---------------------------------------------------------
+void Clan::UpgradeStamina(){
+	++stamina;
+	for (int i=nbGroups-1; i>=0; --i){
+		groups[i]->stamina += 1;
+	}
+}
+//---------------------------------------------------------
+void Clan::KillClan(){
+	--g_nbClans;
 	fed->RemoveClan(fid);
+	if (fed->nb == 0){
+		--g_nbFeds;
+	}
 	for (int i=nbGroups-1; i>=0; --i){
 		delete groups[i];
 	}
@@ -39,6 +58,9 @@ bool Clan::RecieveFederationOffer(Clan* c){
 //---------------------------------------------------------
 void Clan::AddToFederation(Clan *c){
 	c->fed->RemoveClan(c->fid);
+	if (c->fed->nb == 0){
+		delete c->fed;
+	}
 	fed->AddClan(c);
 }
 //---------------------------------------------------------
@@ -64,9 +86,8 @@ void Clan::KillGroup(int gid){
 	delete groups[gid];
 	groups[gid] = groups[--nbGroups];
 	if (nbGroups == 0){
-		g_clans[id] = g_clans[--g_nbClans];
+		KillClan();
 		g_hud->UpdateText();
-		delete this;
 	}
 }
 //---------------------------------------------------------
@@ -114,11 +135,40 @@ void Clan::MarkGroupsPositions(){
 //---------------------------------------------------------
 void Clan::Turn(){
 	double newSize = 0;
+	double goldin = 0;
+	double goldout = 0;
+	double starve = 0;
 	for (int i=nbGroups-1; i>=0; --i){
-		groups[i]->Turn();
+		Group& g = *groups[i];
+		if (g.mining) {
+			goldin += g.size*5;
+		}
+		goldout += g.size;
+		g.Turn();
+	}
+	gold += goldin;
+	gold -= goldout;
+	if (gold < 0){
+		// Starvation
+		gold = -gold;
+		if (gold >= size) {			
+			for (int i=nbGroups-1; i>=0; --i){
+				groups[i]->Kill(groups[i]->size);
+			}
+		} else {
+			double oldsize = size;
+			for (int i=nbGroups-1; i>=0; --i){
+				groups[i]->Kill(groups[i]->size-(gold/oldsize)*groups[i]->size);
+			}
+		}
+		gold = 0;
+	}
+	for (int i=nbGroups-1; i>=0; --i){
 		newSize += groups[i]->size;
 	}
 	size = newSize;
+	g_hud->UpdateText();
+	g_hud->UpdateSelect();
 }
 //---------------------------------------------------------
 void Clan::Render(){

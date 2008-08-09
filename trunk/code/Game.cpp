@@ -307,13 +307,15 @@ void Game::InitGame(void){
 			++i;
 			continue;
 		}
-		g_clans[i] = new Clan(i,x,z,100);
+		g_clans[i] = new Clan(i,x,z,1000);
 		g_pop += g_clans[i]->size;
 	}
 	g_stances = new float*[g_nbClans];
 	for (int i=g_nbClans-1; i>=0; --i){
 		g_stances[i] = new float[g_nbClans];
-		ZeroMemory(g_stances[i], g_nbClans*sizeof(float));
+		for (int j=g_nbClans-1; j>=0; --j){
+			g_stances[i][j] = 60.0f-g_clans[i]->compass.dist(g_clans[j]->compass);
+		}
 	}
 
 	g_selectedpop = 0;
@@ -803,8 +805,10 @@ void Game::KeyDown(int key){
 			case VK_RIGHT: g_right=true; break;
 			case 84: g_map->Terraforming(); break;
 			case 87: g_wireframe ^= 1; break;
-			case 71: g_grid ^= 1; break;
 			case 72: g_hud->Toggle(); break;
+			case 77: g_hud->Click(50,400); break;
+			case 71: g_hud->Click(150,400); break;
+			case 65: g_hud->Click(250,400); break;
 			default: break;
 		}
 	}

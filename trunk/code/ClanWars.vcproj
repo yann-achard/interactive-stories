@@ -329,6 +329,10 @@
 				RelativePath=".\random.h"
 				>
 			</File>
+			<File
+				RelativePath=".\Vec3Df.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

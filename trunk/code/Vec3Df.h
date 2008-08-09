@@ -113,6 +113,14 @@ public:
 		return (sqrtf(x*x+y*y+z*z));
 	}
 	//------------------------------------------------
+	// Distance between two points
+	float dist(Vec3Df& v){
+		float dx = x-v.x;
+		float dy = y-v.y;
+		float dz = z-v.z;
+		return (sqrtf(dx*dx+dy*dy+dz*dz));
+	}
+	//------------------------------------------------
 };
 //------------------------------------------------
 #endif//__VEC3DF_H__

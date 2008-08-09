@@ -506,7 +506,10 @@ void Hud::Click(int x, int y){
 				double bodycount = floor(apow-dpow);
 				if (bodycount < 0) bodycount = 0;
 				if (bodycount > enemy->size) bodycount = enemy->size;
-				sprintf(attackrez, "Attack power %.1f VS Defense power %.1f\n\n Enemy units killed: %0.f of %.0f", apow, dpow, bodycount, enemy->size);
+				double gc = floor((enemy->clan->gold/enemy->clan->size)*bodycount);
+				sprintf(attackrez, "Attack power %.1f VS Defense power %.1f\n\n Enemy units killed: %0.f of %.0f\nGold collected: %0f", apow, dpow, bodycount, enemy->size, gc);
+				enemy->clan->gold -= gc;
+				g_clan->gold += gc;
 				enemy->Kill(bodycount);
 			}
 		}
@@ -570,9 +573,10 @@ void Hud::Click(int x, int y){
 			// Clan Attributes buttons
 			if (y>=g_winy/2-250 && y<=g_winy/2-220){
 				// Stamina
-				if (g_clan->gold >= 10){
-					g_clan->gold -= 10;
-					g_clan->stamina += 1;
+				if (g_clan->gold >= 100){
+					g_clan->gold -= 100;
+					g_clan->UpgradeStamina();
+					UpdateSelect();
 					sprintf(clan,CLANFROMAT,g_clan->size, g_clan->nbGroups, g_clan->gold, g_clan->stamina, g_clan->attack, g_clan->defense, g_clan->culture);
 					SetCaption("Stamina attribute increased.");
 				} else {
@@ -580,8 +584,8 @@ void Hud::Click(int x, int y){
 				}
 			} else if (y>=g_winy/2-153 && y<=g_winy/2-123) {
 				// Attack
-				if (g_clan->gold >= 10){
-					g_clan->gold -= 10;
+				if (g_clan->gold >= 100){
+					g_clan->gold -= 100;
 					g_clan->attack += 1;
 					sprintf(clan,CLANFROMAT,g_clan->size, g_clan->nbGroups, g_clan->gold, g_clan->stamina, g_clan->attack, g_clan->defense, g_clan->culture);
 					SetCaption("Attack attribute increased.");
@@ -590,8 +594,8 @@ void Hud::Click(int x, int y){
 				}
 			} else if (y>=g_winy/2-65 && y<=g_winy/2-35) {
 				// Defense
-				if (g_clan->gold >= 10){
-					g_clan->gold -= 10;
+				if (g_clan->gold >= 100){
+					g_clan->gold -= 100;
 					g_clan->defense += 1;
 					sprintf(clan,CLANFROMAT,g_clan->size, g_clan->nbGroups, g_clan->gold, g_clan->stamina, g_clan->attack, g_clan->defense, g_clan->culture);
 					SetCaption("Defense attribute increased.");
@@ -600,8 +604,8 @@ void Hud::Click(int x, int y){
 				}
 			} else if (y>=g_winy/2+30 && y<=g_winy/2+60) {
 				// Culture
-				if (g_clan->gold >= 10){
-					g_clan->gold -= 10;
+				if (g_clan->gold >= 100){
+					g_clan->gold -= 100;
 					g_clan->culture += 1;
 					sprintf(clan,CLANFROMAT,g_clan->size, g_clan->nbGroups, g_clan->gold, g_clan->stamina, g_clan->attack, g_clan->defense, g_clan->culture);
 					SetCaption("Culture attribute increased.");
@@ -840,7 +844,7 @@ void Hud::UpdateSelect(){
 void Hud::UpdateText(){
 	Clan& c = *g_clan;
 	sprintf(glob,GLOBFROMAT,g_nbClans, g_pop, g_nbFeds);
-	sprintf(fed,FEDFROMAT, c.fed->nb, c.fed->pop, (c.fed->pop*100)/g_pop);
+	sprintf(fed,FEDFROMAT, c.fed->nb, c.fed->pop, g_pop ? ((c.fed->pop*100)/g_pop) : 0);
 	sprintf(clan,CLANFROMAT,c.size, c.nbGroups, c.gold, c.stamina, c.attack, c.defense, c.culture);
 	sprintf(turn,TURNFROMAT,g_turn);
 }
@@ -980,7 +984,7 @@ void Hud::Render(){
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,23,4);
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,28,4);
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,33,4);
-				font->DrawText(NULL,"Gold & Diplomacy\n\n\n\nCost: 10 Gold\n\n\n\nStamina\n\n\n\n\n\nAttack",-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
+				font->DrawText(NULL,"Gold & Diplomacy\n\n\n\nCost: 100 Gold\n\n\n\nStamina\n\n\n\n\n\nAttack",-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
 				font->DrawText(NULL,"\n\n\nIntra-federation                Clan attributes                Extra-federation",-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
 				font->DrawText(NULL,"\n\n\n\n\n\nDefense\n\n\n\n\n\nCulture",-1,&fontgp, DT_VCENTER | DT_CENTER | DT_NOCLIP,0xffffffff);
 
