@@ -2,7 +2,6 @@
 #include "Clan.h"
 #include "Hud.h"
 #include "Group.h"
-#include "random.h"
 #include "Names.h"
 #include "Federation.h"
 //---------------------------------------------------------
@@ -12,7 +11,6 @@ Clan::Clan(int _id, int x, int z, double _size){
 	size = _size;
 	fid = 0;
 	fed = new Federation(this);
-	compass.set(random01()*18.0f,random01()*18.0f,random01()*18.0f);
 	nbGroups = 1;
 	gold = 10000;
 	stamina = 1;
@@ -21,6 +19,8 @@ Clan::Clan(int _id, int x, int z, double _size){
 	culture = 1;
 	groups = new Group*[nbGroups];
 	groups[0] = new Group(0, x, z, size, this);
+	temper = 50.0f;
+	pacifism = 1.0f;
 }
 //---------------------------------------------------------
 Clan::~Clan(){
@@ -136,17 +136,23 @@ void Clan::MarkGroupsPositions(){
 void Clan::Turn(){
 	double newSize = 0;
 	double goldin = 0;
-	double goldout = 0;
+	double goldout = size;
 	double starve = 0;
+	// Gold Intake
 	for (int i=nbGroups-1; i>=0; --i){
 		Group& g = *groups[i];
 		if (g.mining) {
-			goldin += g.size*5;
+			if (g.size >= 20){
+				goldin += 100;
+			} else {
+				goldin += g.size*5;
+			}
 		}
-		goldout += g.size;
 		g.Turn();
 	}
-	gold += goldin;
+	gold += goldin;	
+
+	// Gold expenditures
 	gold -= goldout;
 	if (gold < 0){
 		// Starvation
@@ -167,8 +173,6 @@ void Clan::Turn(){
 		newSize += groups[i]->size;
 	}
 	size = newSize;
-	g_hud->UpdateText();
-	g_hud->UpdateSelect();
 }
 //---------------------------------------------------------
 void Clan::Render(){

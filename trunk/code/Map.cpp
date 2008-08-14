@@ -629,7 +629,7 @@ void Map::Terraforming(){
 	for (int x=1; x<gd-1; ++x){
 		for (int z=1; z<gd-1; ++z){
 			int idx = x+z*gd;
-			if (rand()%1000 < 60 || (gold[idx-1-gd]+gold[idx-gd]+gold[idx-gd+1]+gold[idx-1]>=1) && rand()%1000<200){
+			if (rand()%1000 < 20 || (gold[idx-1-gd]+gold[idx-gd]+gold[idx-gd+1]+gold[idx-1]>=1) && rand()%1000<200){
 				gold[idx] = 1;
 			}
 		}
