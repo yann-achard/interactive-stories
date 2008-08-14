@@ -189,8 +189,14 @@ Game::~Game(void){
 
 	for (int i=g_nbClans-1; i>=0; --i){
 		delete g_clans[i];
+		delete g_stances[i];
+		delete g_belligerence[i];
+		delete g_friendliness[i];
 	}
 	delete g_clans;
+	delete g_stances;
+	delete g_belligerence;
+	delete g_friendliness;
 	delete g_ally;
 	delete g_enemy;
 	delete g_neutral;
@@ -293,7 +299,7 @@ void Game::InitGame(void){
 	g_board = new Group*[g_side*g_side];
 	ZeroMemory(g_board,g_side*g_side*4);
 	g_viz = new char[g_side*g_side];
-	ZeroMemory(g_viz,g_side*g_side);
+	memset(g_viz,1,g_side*g_side);
 
 
 	g_nbClans = 10;
@@ -310,18 +316,27 @@ void Game::InitGame(void){
 		g_clans[i] = new Clan(i,x,z,1000);
 		g_pop += g_clans[i]->size;
 	}
+	g_friendliness = new float*[g_nbClans];
+	g_belligerence = new float*[g_nbClans];
 	g_stances = new float*[g_nbClans];
 	for (int i=g_nbClans-1; i>=0; --i){
+		g_friendliness[i] = new float[g_nbClans];
+		g_belligerence[i] = new float[g_nbClans];
 		g_stances[i] = new float[g_nbClans];
 		for (int j=g_nbClans-1; j>=0; --j){
-			g_stances[i][j] = 60.0f-g_clans[i]->compass.dist(g_clans[j]->compass);
+			g_stances[i][j] = 50.0f;
+			g_friendliness[i][j] = random(-10.0f,10.0f);
+			g_belligerence[i][j] = 1.0f;
 		}
 	}
 
 	g_selectedpop = 0;
 	g_clan = g_clans[0];
 	g_clan->SetVizibility();
-	g_pos.set(-g_clan->groups[0]->x*g_hgap+g_map->hspan/2.0f,-g_map->vspan-3000,-g_clan->groups[0]->z*g_hgap+g_map->hspan/1.5f);
+	g_pos.set(
+		-g_clan->groups[0]->x*g_hgap+g_map->hspan/2.0f,
+		-g_map->vspan-3000,
+		-g_clan->groups[0]->z*g_hgap+g_map->hspan/1.5f);
 	g_rot.set(-1.0f,0,0);	
 	g_hud = new Hud();
 	g_hud->UpdateText();
@@ -334,6 +349,37 @@ void Game::Turn(void){
 		newpop += g_clans[i]->size;
 	}
 	g_pop = newpop;
+	
+	// Update model
+	float dt = 1.0f;
+	// First eval
+	for (int i=g_nbClans-1; i>=0; --i){
+		Clan& c = *g_clans[i];
+		c.d1temper = -c.pacifism*c.temper;
+		for (int j=g_nbClans-1; j>=0; --j){
+			c.d1temper += g_belligerence[i][j]*g_clans[j]->temper+g_friendliness[i][j];
+		}
+		c.d1temper *= dt;
+	}
+	// Second eval
+	for (int i=g_nbClans-1; i>=0; --i){
+		Clan& c = *g_clans[i];
+		c.d2temper = -c.pacifism*(c.temper+0.5f*c.d1temper);
+		for (int j=g_nbClans-1; j>=0; --j){
+			c.d2temper += g_belligerence[i][j]*(g_clans[j]->temper+0.5f*g_clans[j]->d1temper)+g_friendliness[i][j];
+		}
+		c.d2temper *= dt;
+		c.temper += c.d2temper;
+	}
+	// Update stances
+	for (int i=g_nbClans-1; i>=0; --i){
+		Clan& c = *g_clans[i];
+		for (int j=g_nbClans-1; j>=0; --j){
+			g_stances[i][j] = c.temper*g_belligerence[i][j]+g_friendliness[i][j];
+		}
+	}
+
+
 	++g_turn;
 	g_hud->UpdateText();
 	g_hud->UpdateSelect();

@@ -74,5 +74,7 @@ extern double				g_selectedpop;
 extern int					g_turn;
 extern char*				g_viz;
 extern float**			g_stances;
+extern float**			g_friendliness;
+extern float**			g_belligerence;
 //------------------------------------------------
 #endif//__MAIN_H__

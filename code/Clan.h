@@ -23,7 +23,10 @@ public:
 	Federation*	fed;
 	int					fid;
 
-	Vec3Df			compass;
+	float				temper;
+	float				d1temper;
+	float				d2temper;
+	float				pacifism;
 
 	Clan(int _id, int x, int z, double _size);
 	~Clan();

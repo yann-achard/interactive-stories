@@ -52,6 +52,8 @@
  double				g_pop;
  char*				g_viz;
  float**			g_stances;
+ float**			g_friendliness;
+ float**			g_belligerence;
 //------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreviousInstance,LPSTR lpcmdline,int nCmdShow){
 	MSG Message;
