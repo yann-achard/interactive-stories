@@ -10,10 +10,10 @@ class Clan;
 //---------------------------------------------------------
 #define FPSFROMAT "%3d fps"
 #define TURNFROMAT "Turn%9d  <End Turn>"
-#define GLOBFROMAT "\n\nClans           %10d\nPopulation %15.0f\nFederations%15d"
-#define FEDFROMAT "\n\n\nClans           %10d\nPopulation %15.0f\nPop/GlobPop%14.3f%%"
-#define CLANFROMAT "\n\n\nPopulation %15.0f\nGroups     %15d\nGold       %15g\nStamina    %15g\nAttack     %15g\nDefense    %15g\nCulture    %15g"
-#define GROUPFROMAT "\n\n\nSelected  %15d\nPopulation%15.0f\n\n<Select Subgroup>"
+#define GLOBFROMAT "\n\nClans           %10d\nPopulation %15d"
+#define FEDFROMAT "\n\n\nAllies          %10d\nPopulation %15d\nPop/GlobPop%14.3f%%"
+#define CLANFROMAT "\n\n\nPopulation %15d\nGroups     %15d\nGold       %15d\nStamina    %15g\nAttack     %15d\nDefense    %15d\nCulture    %15d"
+#define GROUPFROMAT "\n\n\nSelected  %15d\nPopulation%15d\n\n<Select Subgroup>"
 //---------------------------------------------------------
 class Hud {
 public:
@@ -47,8 +47,8 @@ public:
 	RECT								fontclan;
 	RECT								fontgroup;
 	bool								caption;
+	char								captionstr[128];
 	RECT								fontcaption;
-	char*								captionstr;
 	char								fps[16];
 	char								turn[64];
 	char								glob[256];
@@ -60,14 +60,14 @@ public:
 	s_vert2dc*					sp;
 	RECT								fontsp;
 	char								spstr[64];
-	unsigned int				spnum;
+	int									spnum;
 	bool								attackpanel;
 	bool								goldpanel;
 	bool								resultpanel;
 	char								attacktitle[128];
 	char								attackstr[8][128];
-	double							apow;
-	double							dpow;
+	int									apow;
+	int									dpow;
 	Group*							enemy;
 	char								attackrez[128];		
 	VBUF								ap_vb;

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "main.h"
 #include "Game.h"
 #include "Vec3Df.h"
@@ -30,27 +31,25 @@
 // GAME //
  Game					g_game;
  int					g_side;
+ int					g_nbMines;
+ int					g_nbFreeMines;
+ int					(*g_mines)[2];
  int					g_rez;
  float				g_size;
  float				g_hgap;
  Map*					g_map;
  int					g_nbClans;
- int					g_nbFeds;
+ int					g_nbAliveClans;
  Clan*				g_clan;
  Clan**				g_clans;
- int					g_nbEnemy;
- Clan**				g_enemy;
- int					g_nbAlly;
- Clan**				g_ally;
- int					g_nbNeutral;
- Clan**				g_neutral;
  int					g_nbSelected;
  Group**			g_selected;
  Group**			g_board;
  int					g_turn;
- double				g_selectedpop;
- double				g_pop;
+ int					g_selectedpop;
+ int					g_pop;
  char*				g_viz;
+ char**				g_allies;
  float**			g_stances;
  float**			g_friendliness;
  float**			g_belligerence;

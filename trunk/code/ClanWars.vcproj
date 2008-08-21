@@ -207,15 +207,7 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
-				RelativePath=".\AiCLan.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\Clan.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\Federation.cpp"
 				>
 			</File>
 			<File
@@ -258,6 +250,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\sidefunctions.cpp"
+				>
+			</File>
+			<File
 				RelativePath="winproc.cpp"
 				>
 				<FileConfiguration
@@ -286,19 +282,15 @@
 			Filter="h;hpp;hxx;hm;inl"
 			>
 			<File
-				RelativePath=".\AiClan.h"
-				>
-			</File>
-			<File
 				RelativePath=".\Clan.h"
 				>
 			</File>
 			<File
-				RelativePath="d3ddefs.h"
+				RelativePath=".\colors.h"
 				>
 			</File>
 			<File
-				RelativePath=".\Federation.h"
+				RelativePath="d3ddefs.h"
 				>
 			</File>
 			<File
@@ -322,11 +314,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Names.h"
+				RelativePath=".\names.h"
 				>
 			</File>
 			<File
 				RelativePath=".\random.h"
+				>
+			</File>
+			<File
+				RelativePath=".\sidefunctions.h"
 				>
 			</File>
 			<File

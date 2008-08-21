@@ -3,7 +3,6 @@
 #include "Clan.h"
 #include "Game.h"
 #include "Map.h"
-#include "Federation.h"
 #include "d3ddefs.h"
 #include "main.h"
 //---------------------------------------------------------
@@ -16,9 +15,6 @@ static char* apstrs[8] = {
 	"\n\n\n\n\n\n\n\n\n\n\n\n\n",
 	"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n",
 	"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
-};
-static double attackbonus[] = {
-	0.0, 1.0, 1.1, 1.3, 1.6, 2.0, 2.5, 4.1, 4.7
 };
 //---------------------------------------------------------
 Hud::Hud(){
@@ -62,7 +58,7 @@ void Hud::InitOffer(){
 	of[8].set(g_winx/2+80, g_winy/2-82, 0xFFFFFFFF);
 	of[9].set(g_winx/2+80, g_winy/2-112, 0xFFFFFFFF);
 
-	// Federate
+	// Ally
 	of[10].set(g_winx/2+80, g_winy/2+15, 0xFFFFFFFF);
 	of[11].set(g_winx/2+220, g_winy/2+15, 0xFFFFFFFF);
 	of[12].set(g_winx/2+220, g_winy/2+45, 0xFFFFFFFF);
@@ -319,21 +315,21 @@ void Hud::InitLeftPanel(){
 	lines[lnb++].set(5,100,0xFFFFFFFF);
 	lines[lnb++].set(295,100,0xFFFFFFFF);
 
-	// Federation panel
+	// Alliance panel
 	lines[lnb++].set(5,125,0xFFFFFFFF);
 	lines[lnb++].set(40,125,0xFFFFFFFF);
 
 	lines[lnb++].set(40,115,0xFFFFFFFF);
 	lines[lnb++].set(40,135,0xFFFFFFFF);
-	lines[lnb++].set(160,125,0xFFFFFFFF);
+	lines[lnb++].set(150,125,0xFFFFFFFF);
 	lines[lnb++].set(295,125,0xFFFFFFFF);
-	lines[lnb++].set(160,115,0xFFFFFFFF);
-	lines[lnb++].set(160,135,0xFFFFFFFF);
+	lines[lnb++].set(150,115,0xFFFFFFFF);
+	lines[lnb++].set(150,135,0xFFFFFFFF);
 
 	lines[lnb++].set(40,115,0xFF00FF00);
-	lines[lnb++].set(160,115,0xFFFFBB00);
+	lines[lnb++].set(150,115,0xFFFFBB00);
 	lines[lnb++].set(40,135,0xFF00FF00);
-	lines[lnb++].set(160,135,0xFFFFBB00);
+	lines[lnb++].set(150,135,0xFFFFBB00);
 
 	lines[lnb++].set(295,125,0xFFFFFFFF);
 	lines[lnb++].set(295,220,0xFFFFFFFF);
@@ -503,14 +499,16 @@ void Hud::Click(int x, int y){
 			} else if (x>=g_winx/2+193 && x<=g_winx/2+278) {
 				// Attack
 				resultpanel = true;
-				double bodycount = floor(apow-dpow);
+				int bodycount = int((apow/(float)dpow)*enemy->size*0.25f);
 				if (bodycount < 0) bodycount = 0;
-				if (bodycount > enemy->size) bodycount = enemy->size;
-				double gc = floor((enemy->clan->gold/enemy->clan->size)*bodycount);
-				sprintf(attackrez, "Attack power %.1f VS Defense power %.1f\n\n Enemy units killed: %0.f of %.0f\nGold collected: %0f", apow, dpow, bodycount, enemy->size, gc);
+				if (bodycount+1 >= enemy->size) bodycount = enemy->size;
+				int gc = (enemy->clan->gold*bodycount)/enemy->clan->size;
+				sprintf(attackrez, "Attack power %d VS Defense power %d\n\n Enemy units killed: %d of %d\nGold collected: %d", apow, dpow, bodycount, enemy->size, gc);
 				enemy->clan->gold -= gc;
 				g_clan->gold += gc;
 				enemy->Kill(bodycount);
+				if (enemy->size <= 0) enemy->clan->KillGroup(enemy->id);
+				UpdateText();
 			}
 		}
 	}
@@ -550,21 +548,18 @@ void Hud::Click(int x, int y){
 				goldpanel = true;
 			} else if (y>=g_winy/2+15 && y<=g_winy/2+45){
 				// Federate
-				if (g_clan->FederateVote(destclan, fedrez)){
-					if (g_clan->IsNextTo(destclan)){
-						if (destclan->RecieveFederationOffer(g_clan)){
-							SetCaption("Clan successfully federated.");
-							g_clan->AddToFederation(destclan);
-							UpdateText();
-							GoldPanel();
-						} else {
-							SetCaption("The clan refused your offer.");
-						}
-					} else {
-						SetCaption("The clan would be accepted, send a group to make the proposal.");
-					}
+				if (g_allies[g_clan->id][destclan->id]){
+					SetCaption("Allready allies.");
+				} else if (destclan->AllianceOffer(g_clan, 0)){
+					SetCaption("Alliance accepted.");
+					g_clan->AddAlly(destclan);
+					destclan->AddAlly(g_clan);
+					UpdateText();
+					GoldPanel();
 				} else {
-					SetCaption(fedrez);
+					SetCaption("Alliance refused.");
+					/// More hate
+					;
 				}
 			}
 		}
@@ -638,7 +633,11 @@ void Hud::Click(int x, int y){
 			if (g_nbSelected==1){
 				g = g_selected[0];
 				if (g_map->gold[g->x*g_side+g->z]){
-					g->mining = !g->mining;
+					if (g->mining){
+						g->StopMining();
+					} else {
+						g->StartMining();
+					}
 					SetCaption(g->mining ? "Now mining." : "Stopped mining.");
 				} else {
 					SetCaption("No gold here, can't mine.");
@@ -720,25 +719,25 @@ void Hud::GoldPanel(){
 	int a=0;
 	int b=0;
 	for (int i=0; i<g_clan->id; ++i){
-		if (g_clans[i]->fed == g_clan->fed){
-			sprintf(nfedliststances[a], "%3.2f%%", g_stances[g_clans[i]->id][g_clan->id]);
+		if (g_allies[g_clan->id][i]){
+			sprintf(nfedliststances[a], "%3.2f%", g_stances[g_clans[i]->id][g_clan->id]);
 			fedclans[a] = g_clans[i];
 			fedliststr[a++] = g_clans[i]->name;
 
 		} else {
-			sprintf(fedliststances[b], "%3.2f%%", g_stances[g_clans[i]->id][g_clan->id]);
+			sprintf(fedliststances[b], "%3.2f%", g_stances[g_clans[i]->id][g_clan->id]);
 			nfedclans[b] = g_clans[i];
 			nfedliststr[b++] = g_clans[i]->name;
 		}
 	}
 	for (int i=g_clan->id+1; i<g_nbClans; ++i){
-		if (g_clans[i]->fed == g_clan->fed){
-			sprintf(fedliststances[a], "%3.2f%%", g_stances[g_clans[i]->id][g_clan->id]);
+		if (g_allies[g_clan->id][i]){
+			sprintf(fedliststances[a], "%3.2f%", g_stances[g_clans[i]->id][g_clan->id]);
 			fedclans[a] = g_clans[i];
 			fedliststr[a++] = g_clans[i]->name;
 
 		} else {
-			sprintf(nfedliststances[b], "%3.2f%%", g_stances[g_clans[i]->id][g_clan->id]);
+			sprintf(nfedliststances[b], "%3.2f%", g_stances[g_clans[i]->id][g_clan->id]);
 			nfedclans[b] = g_clans[i];
 			nfedliststr[b++] = g_clans[i]->name;
 		}
@@ -755,19 +754,19 @@ void Hud::AttackPanel(int x, int z){
 	Group* g = NULL;
 	enemy = g_board[x*g_side+z];
 	dpow = enemy->size * enemy->clan->defense;
-	sprintf(attacktitle, "Attacking %s group of %.0f units", enemy->clan->name, enemy->size);
+	sprintf(attacktitle, "Attacking %s group of %d units", enemy->clan->name, enemy->size);
 	apow = 0;
 	for (int i=g_nbSelected-1; i>=0; --i){
 		g = g_selected[i];
 		apow += g->size;
-		sprintf(attackstr[i], "%sGroup %d: %.0f units", apstrs[i] , i+1, g->size);
+		sprintf(attackstr[i], "%sGroup %d: %d units", apstrs[i] , i+1, g->size);
 	}
-	sprintf(attackrez, "%s\n\n\n        Total attack power: %.0f x %.0f x %.1f = %.1f", apstrs[7], apow, g->clan->attack, attackbonus[g_nbSelected], apow * attackbonus[g_nbSelected] * g->clan->attack);
-	apow *= attackbonus[g_nbSelected] * g->clan->attack;
+	sprintf(attackrez, "%s\n\n\n        Total attack power: %d x %d = %d", apstrs[7], apow, g->clan->attack,  apow*g->clan->attack);
+	apow *= g->clan->attack;
 }
 //---------------------------------------------------------
 void Hud::SetCaption(char* str){
-	captionstr = str;
+	sprintf(captionstr,"%s",str);
 	caption = true;
 }
 //---------------------------------------------------------
@@ -843,8 +842,8 @@ void Hud::UpdateSelect(){
 //---------------------------------------------------------
 void Hud::UpdateText(){
 	Clan& c = *g_clan;
-	sprintf(glob,GLOBFROMAT,g_nbClans, g_pop, g_nbFeds);
-	sprintf(fed,FEDFROMAT, c.fed->nb, c.fed->pop, g_pop ? ((c.fed->pop*100)/g_pop) : 0);
+	sprintf(glob,GLOBFROMAT,g_nbAliveClans, g_pop);
+	sprintf(fed,FEDFROMAT, c.nbAllies, c.alliancePop, g_pop ? ((c.alliancePop*100.0f)/(float)g_pop) : 0);
 	sprintf(clan,CLANFROMAT,c.size, c.nbGroups, c.gold, c.stamina, c.attack, c.defense, c.culture);
 	sprintf(turn,TURNFROMAT,g_turn);
 }
@@ -882,7 +881,7 @@ void Hud::PopupDelete(){
 }
 //---------------------------------------------------------
 void Hud::PopupText(int key){
-	unsigned int nextnum = spnum*10 + key;
+	int nextnum = spnum*10 + key;
 	if ((goldoffer && nextnum<=g_clan->gold) || nextnum<g_selectedpop){
 		int i;
 		for (i=0; spstr[i]; ++i);
@@ -904,7 +903,7 @@ void Hud::RenderText(){
 	font->DrawText(NULL,fps,-1,&fontcaption, DT_TOP | DT_LEFT | DT_NOCLIP,0xffffffff);
 	font->DrawText(NULL,"     Global",-1,&fontglob, DT_LEFT | DT_NOCLIP,0xffffffff);
 	font->DrawText(NULL,glob,-1,&fontglob, DT_CENTER | DT_NOCLIP,0xffffffff);
-	font->DrawText(NULL,"\n     Federation",-1,&fontfed, DT_LEFT | DT_NOCLIP,0xffffffff);
+	font->DrawText(NULL,"\n     Alliances",-1,&fontfed, DT_LEFT | DT_NOCLIP,0xffffffff);
 	font->DrawText(NULL,fed,-1,&fontfed, DT_CENTER | DT_NOCLIP,0xffffffff);
 	font->DrawText(NULL,"\n     Clan",-1,&fontclan, DT_LEFT | DT_NOCLIP,0xffffffff);
 	font->DrawText(NULL,clan,-1,&fontclan, DT_CENTER | DT_NOCLIP,0xffffffff);
@@ -969,7 +968,7 @@ void Hud::Render(){
 			if (offer) {
 				font->DrawText(NULL,offertitle,-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
 				font->DrawText(NULL,"\n\n\n\n\n\n\n\n\nGold Offer",-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
-				font->DrawText(NULL,"\n\nPeace Offer\n\n\n\n\n\n\n\nFederate",-1,&fontgp, DT_VCENTER | DT_CENTER | DT_NOCLIP,0xffffffff);
+				font->DrawText(NULL,"\n\nPeace Offer\n\n\n\n\n\n\n\nAlly",-1,&fontgp, DT_VCENTER | DT_CENTER | DT_NOCLIP,0xffffffff);
 				g_device->SetStreamSource(0,of_vb,0,sizeof(s_vert2dc));
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,0,4);
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,5,4);
@@ -985,7 +984,7 @@ void Hud::Render(){
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,28,4);
 				g_device->DrawPrimitive(D3DPT_LINESTRIP,33,4);
 				font->DrawText(NULL,"Gold & Diplomacy\n\n\n\nCost: 100 Gold\n\n\n\nStamina\n\n\n\n\n\nAttack",-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
-				font->DrawText(NULL,"\n\n\nIntra-federation                Clan attributes                Extra-federation",-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
+				font->DrawText(NULL,"\n\n\nAllies                    Clan attributes                Not allies",-1,&fontgp, DT_TOP | DT_CENTER | DT_NOCLIP,0xffffffff);
 				font->DrawText(NULL,"\n\n\n\n\n\nDefense\n\n\n\n\n\nCulture",-1,&fontgp, DT_VCENTER | DT_CENTER | DT_NOCLIP,0xffffffff);
 
 				vfontgp.top = fontfgp.top;

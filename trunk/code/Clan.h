@@ -4,48 +4,66 @@
 #include "Vec3Df.h"
 //---------------------------------------------------------
 class Group;
-class Federation;
 //---------------------------------------------------------
 class Clan {
 public:
-	int					id;
-	char*				name;
-	double			size;
-	double			gold;
-	int					nbGroups;
-	Group**			groups;
+	bool					alive;
+	int						id;
+	char*					name;
+	D3DMATERIAL9	mat;
+	int						size;
+	int						gold;
+	int						myMines;
+	int						goldintake;
+	int						nbGroups;
+	Group**				groups;
 
-	double			stamina;
-	double			attack;
-	double			defense;
-	double			culture;
+	double				stamina;
+	int						attack;
+	int						defense;
+	int						culture;
 
-	Federation*	fed;
-	int					fid;
+	Clan**				allies;
+	int						nbAllies;
+	int						alliancePop;
 
-	float				temper;
-	float				d1temper;
-	float				d2temper;
-	float				pacifism;
+	float					temper;
+	float					d1temper;
+	float					d2temper;
+	float					pacifism;
 
-	Clan(int _id, int x, int z, double _size);
+	Clan(){};
+	Clan(int _id, int x, int z, int _size);
 	~Clan();
 
-	void KillClan();
-	void UpgradeStamina();
-	bool IsNextTo(Clan* c);
-	void AddToFederation(Clan* c);
-	bool FederateVote(Clan* c, char* res);
-	bool RecieveFederationOffer(Clan* c);
-	bool RecievePeaceOffer(Clan* c);
-	bool RecieveGoldOffering(double amount, Clan* donor);
-	void KillGroup(int gid);
-	void AddGroup(int x, int z, double _size);
-	void MergeGroups(Group* g1, Group* g2);
-	void MarkGroupsPositions();
-	void SetVizibility();
-	void Render();
-	void Turn();
+	void	KillClan();
+	void	AddAlly(Clan* c);
+	void	DeadAlly(Clan* c);
+	int		AllianceCost(Clan* c);
+	bool	AllianceOffer(Clan* c, int bribe);
+	void	UpgradeStamina();
+	bool	IsNextTo(Clan* c);
+	bool	RecievePeaceOffer(Clan* c);
+	bool	RecieveGoldOffering(int amount, Clan* donor);
+	void	KillGroup(int gid);
+	void	AddGroup(int x, int z, int _size);
+	void	AddGroup(int _id, int x, int z, int _size, double _stam);
+	void	ImplantGroups();
+	void	DeplantGroups();
+	void	MergeGroups();
+	void	MergeGroups(Group* g1, Group* g2);
+	void	MarkGroupsPositions();
+	void	SetVizibility();
+	void	Render();
+	void	SendSurplusToWar();
+	void	TotalWar();
+	void	RegroupNonMiningGroups(Group* target);
+	bool	CheckForUnbalancedMineExploitation();
+	bool	CheckForMineUnderExploitation();
+	void	RebalanceMineExploitation();
+	void	AttackTarget(Group& target);
+	void	Turn();
+	void	FinishTurn();
 };
 //---------------------------------------------------------
 #endif//__CLAN_H__
