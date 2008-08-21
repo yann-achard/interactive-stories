@@ -26,7 +26,7 @@ Map::Map(){
 	hspan = 40000.0f;
 	vspan =  6000.0f;
 	hd = 500;
-	gd = 50;
+	gd = 10;
 	hdhgap = hspan/(float)hd;
 	gdhgap = hspan/(float)gd;
 	hdgd = hd/gd;
@@ -626,6 +626,7 @@ void Map::Terraforming(){
 
 	// Setting gold
 	ZeroMemory(gold,gd2);
+	/*
 	for (int x=1; x<gd-1; ++x){
 		for (int z=1; z<gd-1; ++z){
 			int idx = x+z*gd;
@@ -634,6 +635,7 @@ void Map::Terraforming(){
 			}
 		}
 	}
+	*/
 
 	// Saving values
 	int tri;

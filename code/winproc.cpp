@@ -1,4 +1,5 @@
 #include "main.h"
+#include "sidefunctions.h"
 #include "Game.h"
 //---------------------------------------------------------
 LRESULT CALLBACK WindowProcedure(HWND hWindow,UINT uMessage,WPARAM wparam,LPARAM lparam){
@@ -15,6 +16,7 @@ LRESULT CALLBACK WindowProcedure(HWND hWindow,UINT uMessage,WPARAM wparam,LPARAM
 		case WM_KEYUP: g_game.KeyUp(wparam);	return 0;
 		case WM_KEYDOWN: {
 			if (wparam == VK_ESCAPE){
+				Log("escape key pressed\n");
 				DestroyWindow(hWindow);
 			} else {
 				g_game.KeyDown(wparam);

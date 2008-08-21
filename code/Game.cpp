@@ -1,14 +1,11 @@
 #include "main.h"
 #include "random.h"
+#include "sidefunctions.h"
 #include "Group.h"
 #include "Hud.h"
 #include "Game.h"
 #include "Clan.h"
 #include "Map.h"
-//---------------------------------------------------------
-inline float dist(int x, int z){
-	return (sqrtf((float)((x*x)+(z*z))));
-}
 //---------------------------------------------------------
 Game::Game(void){
 	run = true;
@@ -197,10 +194,8 @@ Game::~Game(void){
 	delete g_stances;
 	delete g_belligerence;
 	delete g_friendliness;
-	delete g_ally;
-	delete g_enemy;
-	delete g_neutral;
 	delete g_board;
+	delete g_allies;
 	delete g_viz;
 	delete g_map;
 	delete g_selected;
@@ -286,25 +281,16 @@ void Game::InitGame(void){
 	g_side = g_map->gd;
 	g_hgap = g_map->gdhgap;
 
-	g_nbAlly = 0;
-	g_nbClans = 0;
-	g_nbEnemy = 0;
-	g_nbNeutral = 0;
 	g_nbSelected = 0;
-	g_ally = new Clan*[MAX_ALLIES];
-	g_clans = new Clan*[MAX_CLANS];
-	g_enemy = new Clan*[MAX_ENEMIES];
-	g_neutral = new Clan*[MAX_NEUTRAL];
 	g_selected = new Group*[SELECT_MAX];
 	g_board = new Group*[g_side*g_side];
 	ZeroMemory(g_board,g_side*g_side*4);
 	g_viz = new char[g_side*g_side];
 	memset(g_viz,1,g_side*g_side);
 
-
-	g_nbClans = 10;
-	g_nbFeds = 0;
-	g_clans = new Clan*[MAX_CLANS];
+	g_nbClans = 5;
+	g_nbAliveClans = g_nbClans;
+	g_clans = new Clan*[g_nbClans];
 	g_pop = 0;
 	for (int i=g_nbClans-1; i>=0; --i){
 		int x = random(g_map->gd);
@@ -313,21 +299,48 @@ void Game::InitGame(void){
 			++i;
 			continue;
 		}
-		g_clans[i] = new Clan(i,x,z,1000);
+		g_clans[i] = new Clan(i,x,z,400);
 		g_pop += g_clans[i]->size;
 	}
 	g_friendliness = new float*[g_nbClans];
 	g_belligerence = new float*[g_nbClans];
 	g_stances = new float*[g_nbClans];
+	g_allies = new char*[g_nbClans];
 	for (int i=g_nbClans-1; i>=0; --i){
 		g_friendliness[i] = new float[g_nbClans];
 		g_belligerence[i] = new float[g_nbClans];
 		g_stances[i] = new float[g_nbClans];
+		g_allies[i] = new char[g_nbClans];
 		for (int j=g_nbClans-1; j>=0; --j){
-			g_stances[i][j] = 50.0f;
 			g_friendliness[i][j] = random(-10.0f,10.0f);
+			g_stances[i][j] = g_friendliness[i][j];
 			g_belligerence[i][j] = 1.0f;
+			g_allies[i][j] = 0;
 		}
+	}
+
+	//g_nbMines = int((((float)g_pop/1.5f)/50)/5);
+	g_nbMines = 5;
+	g_nbFreeMines = g_nbMines;
+	g_mines = new int[g_nbMines][2];
+	/*
+	g_mines[0][0] = 0;
+	g_mines[0][1] = 0;
+	g_mines[1][0] = 1;
+	g_mines[1][1] = 1;
+	g_map->gold[0] = 1;
+	g_map->gold[g_side+1] = 1;
+*/
+	for (int i=g_nbMines-1; i>=0; --i){
+		int x = rand()%g_side;
+		int z = rand()%g_side;
+		if (g_map->gold[x*g_side+z]){
+			++i;
+			continue;
+		}
+		g_map->gold[x*g_side+z] = 1;
+		g_mines[i][0] = x;
+		g_mines[i][1] = z;
 	}
 
 	g_selectedpop = 0;
@@ -335,7 +348,7 @@ void Game::InitGame(void){
 	g_clan->SetVizibility();
 	g_pos.set(
 		-g_clan->groups[0]->x*g_hgap+g_map->hspan/2.0f,
-		-g_map->vspan-3000,
+		-20000,
 		-g_clan->groups[0]->z*g_hgap+g_map->hspan/1.5f);
 	g_rot.set(-1.0f,0,0);	
 	g_hud = new Hud();
@@ -343,30 +356,34 @@ void Game::InitGame(void){
 }
 //---------------------------------------------------------
 void Game::Turn(void){
-	double newpop = 0;
+	Stats();
+	sprintf(logstr, "############# Turn %3d #############\n",g_turn); Log();
+	int newpop = 0;
 	for (int i=g_nbClans-1; i>=0; --i){
-		g_clans[i]->Turn();
-		newpop += g_clans[i]->size;
+		if (g_clans[i]->alive) {
+			g_clans[i]->Turn();
+			newpop += g_clans[i]->size;
+		}
 	}
 	g_pop = newpop;
 	
 	// Update model
-	float dt = 1.0f;
+	float dt = 0.1f;
 	// First eval
 	for (int i=g_nbClans-1; i>=0; --i){
 		Clan& c = *g_clans[i];
-		c.d1temper = -c.pacifism*c.temper;
+		c.d1temper = c.pacifism*c.temper*g_nbClans;
 		for (int j=g_nbClans-1; j>=0; --j){
-			c.d1temper += g_belligerence[i][j]*g_clans[j]->temper+g_friendliness[i][j];
+			c.d1temper -= g_belligerence[i][j]*g_clans[j]->temper+g_friendliness[i][j];
 		}
 		c.d1temper *= dt;
 	}
 	// Second eval
 	for (int i=g_nbClans-1; i>=0; --i){
 		Clan& c = *g_clans[i];
-		c.d2temper = -c.pacifism*(c.temper+0.5f*c.d1temper);
+		c.d2temper = c.pacifism*(c.temper+0.5f*c.d1temper)*g_nbClans;
 		for (int j=g_nbClans-1; j>=0; --j){
-			c.d2temper += g_belligerence[i][j]*(g_clans[j]->temper+0.5f*g_clans[j]->d1temper)+g_friendliness[i][j];
+			c.d2temper -= g_belligerence[i][j]*(g_clans[j]->temper+0.5f*g_clans[j]->d1temper)+g_friendliness[i][j];
 		}
 		c.d2temper *= dt;
 		c.temper += c.d2temper;
@@ -375,11 +392,12 @@ void Game::Turn(void){
 	for (int i=g_nbClans-1; i>=0; --i){
 		Clan& c = *g_clans[i];
 		for (int j=g_nbClans-1; j>=0; --j){
-			g_stances[i][j] = c.temper*g_belligerence[i][j]+g_friendliness[i][j];
+			g_stances[i][j] = c.temper*(c.pacifism-g_belligerence[i][j])+g_friendliness[i][j];
 		}
 	}
 
 
+	Log("####################################\n");
 	++g_turn;
 	g_hud->UpdateText();
 	g_hud->UpdateSelect();
@@ -550,9 +568,6 @@ void Game::ExecuteActions(){
 			if (pathindexowner[j] == g){
 				g_board[g->x*g_side+g->z] = 0;
 				g->MoveTo(xpathindex[j],zpathindex[j]);
-				if (g_board[g->x*g_side+g->z]){
-					g->clan->MergeGroups(g,g_board[g->x*g_side+g->z]);
-				}
 				g_board[g->x*g_side+g->z] = g;
 				break;
 			}
@@ -595,9 +610,14 @@ void Game::Render(void){
 	g_device->SetRenderState(D3DRS_ALPHABLENDENABLE,true);
 	g_device->SetTexture(0,quad_tex);
 	g_device->SetFVF(TVERT);
-	SetEColor(MC_ELIGHTBLUE);
+//	SetEColor(MC_ELIGHTBLUE);
 	g_clan->Render();
-	SetEColor(MC_ERED);
+	//SetEColor(MC_ERED);
+	for (int i=g_nbClans-1; i>0; --i){
+		g_clans[i]->Render();
+	}
+	/*
+	// Group rendering through board
 	int idx;
 	for (int x=g_side-1; x>=0; --x){
 		idx = x*g_side;
@@ -607,6 +627,7 @@ void Game::Render(void){
 			}
 		}
 	}
+	*/
 	// Attacking
 	if (attacking){
 		g_device->SetRenderState(D3DRS_LIGHTING,false);
@@ -757,7 +778,7 @@ void Game::UpdateWay(){
 		if (ix==0){
 			while (z!=cz){
 				z+=iz;
-				if ((g->stamina < g->planed+dist(x-sx,z-sz)) || (g_board[x*g_side+z] && g_board[x*g_side+z]->clan != g->clan)){
+				if ((g->stamina < g->planed+distFromManhattan(x-sx,z-sz)) || (g_board[x*g_side+z] && g_board[x*g_side+z]->clan != g->clan)){
 					z-=iz;
 					break;
 				}
@@ -766,7 +787,7 @@ void Game::UpdateWay(){
 		} else if (iz==0){
 			while (x!=cx){
 				x+=ix;
-				if ((g->stamina < g->planed+dist(x-sx,z-sz)) || (g_board[x*g_side+z] && g_board[x*g_side+z]->clan != g->clan)){
+				if ((g->stamina < g->planed+distFromManhattan(x-sx,z-sz)) || (g_board[x*g_side+z] && g_board[x*g_side+z]->clan != g->clan)){
 					x-=ix;
 					break;
 				}
@@ -780,7 +801,7 @@ void Game::UpdateWay(){
 				kz = (1.0f-az)/dz;
 				if (kx < kz){
 					x += ix;
-					if ((g->stamina < g->planed+dist(x-sx,z-sz)) || (g_board[x*g_side+z] && g_board[x*g_side+z]->clan != g->clan)){
+					if ((g->stamina < g->planed+distFromManhattan(x-sx,z-sz)) || (g_board[x*g_side+z] && g_board[x*g_side+z]->clan != g->clan)){
 						x-=ix;
 						break;
 					}
@@ -788,7 +809,7 @@ void Game::UpdateWay(){
 					az += kx*dz;
 				} else if (kz < kx){
 					z += iz;
-					if ((g->stamina < g->planed+dist(x-sx,z-sz)) || (g_board[x*g_side+z] && g_board[x*g_side+z]->clan != g->clan)){
+					if ((g->stamina < g->planed+distFromManhattan(x-sx,z-sz)) || (g_board[x*g_side+z] && g_board[x*g_side+z]->clan != g->clan)){
 						z-=iz;
 						break;
 					}
@@ -797,7 +818,7 @@ void Game::UpdateWay(){
 				} else {
 					x += ix;
 					z += iz;
-					if ((g->stamina < g->planed+dist(x-sx,z-sz)) || (g_board[x*g_side+z] && g_board[x*g_side+z]->clan != g->clan)){
+					if ((g->stamina < g->planed+distFromManhattan(x-sx,z-sz)) || (g_board[x*g_side+z] && g_board[x*g_side+z]->clan != g->clan)){
 						x-=ix;
 						z-=iz;
 						break;
@@ -810,7 +831,7 @@ void Game::UpdateWay(){
 		}
 		nextx[i] = x;
 		nextz[i] = z;
-		nextcost[i] = dist(x-sx,z-sz);
+		nextcost[i] = distFromManhattan(x-sx,z-sz);
 		way[n++].set((x+0.5f)*g_hgap, g_map->hmap[x+g_side*z], (z+0.5f)*g_hgap);
 	}
 	
@@ -824,7 +845,8 @@ void Game::UpdateWay(){
 //---------------------------------------------------------
 void Game::Hover(int x, int z){
 	if (g_board[x*g_side+z]){
-		g_hud->SetCaption(g_board[x*g_side+z]->clan->name);
+		sprintf(g_hud->captionstr, "%s group: %d units.",g_board[x*g_side+z]->clan->name, g_board[x*g_side+z]->size);
+		g_hud->caption = true;
 	} else {
 		g_hud->CaptionOff();
 	}
@@ -1041,13 +1063,13 @@ void Game::MouseWheel(int key){
 	int roll = HIWORD(key);
 	if (roll < 600) {//WUP
 		if (g_pos.y < -2000){
-			g_pos.y += 500.0f; //zoom
+			g_pos.y += 2000.0f; //zoom
 			D3DXMatrixTranslation(&matTrans,g_pos.x,g_pos.y,g_pos.z);
 			matView = g_map->trans * matTrans * matRotX;
 		}
 	} else {//WDOWN
-		if (g_pos.y > -20000){
-			g_pos.y -= 500.0f; 
+		if (g_pos.y > -22000){
+			g_pos.y -= 2000.0f; 
 			D3DXMatrixTranslation(&matTrans,g_pos.x,g_pos.y,g_pos.z);
 			matView = g_map->trans * matTrans * matRotX;
 		}
