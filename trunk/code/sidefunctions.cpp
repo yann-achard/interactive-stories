@@ -73,6 +73,10 @@ void Stats(){
 		Clan& c = *g_clans[i];
 		fprintf(fh, "\t%d",c.gold);
 	}
+	for (int i=0; i<g_nbClans; ++i){
+		Clan& c = *g_clans[i];
+		fprintf(fh, "\t%3.2f",c.temper);
+	}
 	fprintf(fh,"\n");
 	fflush(fh);
 	fclose(fh);

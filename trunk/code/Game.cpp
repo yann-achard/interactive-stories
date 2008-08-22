@@ -299,7 +299,7 @@ void Game::InitGame(void){
 			++i;
 			continue;
 		}
-		g_clans[i] = new Clan(i,x,z,400);
+		g_clans[i] = new Clan(i,x,z,800);
 		g_pop += g_clans[i]->size;
 	}
 	g_friendliness = new float*[g_nbClans];
@@ -387,6 +387,8 @@ void Game::Turn(void){
 		}
 		c.d2temper *= dt;
 		c.temper += c.d2temper;
+		if (c.temper > 100.0f) c.temper = 100.0f;
+		else if (c.temper < 0.0f) c.temper = 0.0f;
 	}
 	// Update stances
 	for (int i=g_nbClans-1; i>=0; --i){
