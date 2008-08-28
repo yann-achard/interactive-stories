@@ -64,6 +64,7 @@ void Stats(){
 	} else {
 		fh = fopen("stats.txt","a");
 	}
+	/*
 	fprintf(fh, "%d\t%d",g_turn, g_pop);
 	for (int i=0; i<g_nbClans; ++i){
 		Clan& c = *g_clans[i];
@@ -73,9 +74,16 @@ void Stats(){
 		Clan& c = *g_clans[i];
 		fprintf(fh, "\t%d",c.gold);
 	}
+	*/
 	for (int i=0; i<g_nbClans; ++i){
 		Clan& c = *g_clans[i];
-		fprintf(fh, "\t%3.2f",c.temper);
+		fprintf(fh, "%3.2f\t",c.temper);
+	}
+	for (int i=0; i<g_nbClans; ++i){
+		for (int j=0; j<g_nbClans; ++j){
+			if (i==j) continue;
+			fprintf(fh, "%3.2f\t",g_stances[i][j]);
+		}
 	}
 	fprintf(fh,"\n");
 	fflush(fh);

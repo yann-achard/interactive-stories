@@ -7,6 +7,7 @@
 #include "Group.h"
 #include "names.h"
 #include "colors.h"
+#include "Event.h"
 //---------------------------------------------------------
 Clan::Clan(int _id, int x, int z, int _size){
 	alive = true;
@@ -31,7 +32,6 @@ Clan::Clan(int _id, int x, int z, int _size){
 	groups = new Group*[nbGroups];
 	groups[0] = new Group(0, x, z, size, this);
 	temper = 50.0f;
-	pacifism = 1.0f;
 }
 //---------------------------------------------------------
 Clan::~Clan(){
@@ -45,12 +45,15 @@ void Clan::UpgradeStamina(){
 	}
 }
 //---------------------------------------------------------
-bool Clan::AllianceOffer(Clan* c, int bribe){
-	return true;
-}
-//---------------------------------------------------------
-int Clan::AllianceCost(Clan* c){
-	return (0);
+int Clan::AllianceCost(const Clan& c){
+	int price;
+	if (g_stances[id][c.id] >= 50.0f){
+		price = 0;
+	} else {
+		price = int((float)c.gold*((50.0f-g_stances[id][c.id])/150.0f));
+	}
+	sprintf(logstr, "\t\t\t- Price of alliance from %s to %s: %d\n", c.name, name, price); Log();
+	return (price);
 }
 //---------------------------------------------------------
 void Clan::DeadAlly(Clan* c){
@@ -80,6 +83,19 @@ void Clan::AddAlly(Clan* c){
 	}
 	newallies[nbAllies++] = c;
 	allies = newallies;
+}
+//---------------------------------------------------------
+void Clan::RemoveAlly(Clan* c){
+	sprintf(logstr, "- %s no longer sees %s as an ally (%3.1f)\n", name, c->name, g_stances[id][c->id]); Log();
+	assert(g_allies[id][c->id] == 1);
+	g_allies[id][c->id] = 0;
+	alliancePop -= c->size;
+	for (int i=0; i<nbAllies; ++i){
+		if (allies[i] == c){
+			allies[i] = allies[--nbAllies];
+			break;
+		}
+	}
 }
 //---------------------------------------------------------
 void Clan::KillClan(){
@@ -112,15 +128,23 @@ bool Clan::IsNextTo(Clan* c){
 	return (false);
 }
 //---------------------------------------------------------
-bool Clan::RecievePeaceOffer(Clan* c){
-	if (g_stances[id][c->id] < 0.0f){
-		g_stances[id][c->id] = 0.0f;
+bool Clan::ReceiveAllianceOffer(const Clan& c, int bribe){
+	/*EVENT*/Event(c, *this, ET_Offer);
+	if (bribe >= AllianceCost(c)){
+		return true;
 	}
-	return (true);
+	return (g_stances[id][c.id] >= 50.0f);
 }
 //---------------------------------------------------------
-bool Clan::RecieveGoldOffering(int amount, Clan* donor){
+bool Clan::ReceivePeaceOffer(const Clan& c){
+	/*EVENT*/Event(c, *this, ET_Offer);
+	return (g_peacewill[id][c.id] > g_belligerence[id][c.id]);
+}
+//---------------------------------------------------------
+bool Clan::ReceiveGoldOffering(int amount, Clan& donor){
+	/*EVENT*/Event(donor, *this, ET_Offer);
 	gold += amount;
+	donor.gold -= amount;
 	return (true);
 }
 //---------------------------------------------------------
@@ -205,8 +229,6 @@ void Clan::MergeGroups(Group* g1, Group* g2){
 	if (g1->clan != g_clan) return;
 	for (i1=0; i1<g_nbSelected && g_selected[i1]!=g1; ++i1);
 	for (i2=0; i2<g_nbSelected && g_selected[i2]!=g2; ++i2);
-	assert(i1<g_nbSelected);
-	assert(i2<g_nbSelected);
 	g_selectedpop = g1->size;
 	if (i1<g_nbSelected){
 		g_selected[i1] = g1;
@@ -226,7 +248,7 @@ void Clan::MarkGroupsPositions(){
 }
 //---------------------------------------------------------
 void Clan::Turn(){
-	if (this == g_clan)	return FinishTurn();
+	//if (this == g_clan)	return FinishTurn();
 
 #ifdef DEBUG
 	CheckBoardConsistency();
@@ -237,7 +259,7 @@ void Clan::Turn(){
 	float score=-1000, bestscore=0;
 	Clan* bestclan = NULL;
 	while (true){
-		int savings = (goldintake-size) > 0 ? gold : gold+(goldintake-size)*5;
+		int savings = (goldintake-size)>0 ? gold : gold+(goldintake-size)*10;
 		bestclan = NULL;
 		for (int i=g_nbClans-1; i>=0; --i){
 			if (g_allies[id][i] || i==id || g_clans[i]->alive==false) continue;
@@ -248,17 +270,19 @@ void Clan::Turn(){
 			}
 		}
 		if (bestclan==NULL) break;
-		int price = bestclan->AllianceCost(this);
-		if (price==0 ||  price<=savings){
+		int price = bestclan->AllianceCost(*this);
+		if (price==0 || price<=savings){
 			sprintf(logstr, "\t- Offering alliance to %s clan for %d gold\n", bestclan->name, price); Log();
-			if (bestclan->AllianceOffer(this, price)){
+			if (bestclan->ReceiveAllianceOffer(*this, price)){
+				/*EVENT*/Event(*bestclan, *this, ET_AcceptAllianceOffer);
 				Log("\t\t- Alliance accepted\n");
+				gold -= price;
+				bestclan->gold += price;
 				AddAlly(bestclan);
 				bestclan->AddAlly(this);
 			} else {
-				Log("\t\t- Alliance regected\n");
-				/// More hate
-				assert(false);
+				Log("\t\t- Alliance rejected\n");
+				/*EVENT*/Event(*bestclan, *this, ET_TurnDownOffer);
 			}
 		}
 	}
@@ -395,7 +419,16 @@ void Clan::RegroupNonMiningGroups(Group* target){
 
 	for (int igroup=0; igroup<nbGroups; ++igroup){
 		if (groups[igroup]->mining == false){
+			Group& g = *groups[igroup];
+			int cx = g.x;
+			int cz = g.z;
 			groups[igroup]->HeadFor(big->x,big->z);
+			if (g.x==cx && g.z==cz && g.x!=big->x && g.z!=big->z){
+				// Something is blocking us
+				int idx = g.GetNextCell(big->x,big->z);
+				assert(g_board[idx]);
+				g.Combat(*g_board[idx]);
+			}
 		}
 	}
 }
@@ -428,7 +461,7 @@ void Clan::SendSurplusToWar(){
 			target = mg;
 		}
 	}
-	assert(target);
+	if (!target) return;
 	if (nbFreeGroups>1) {
 		RegroupNonMiningGroups(target);
 	} else {
@@ -567,7 +600,7 @@ void Clan::FinishTurn(){
 		} else {
 			int oldsize = size;
 			for (int i=0; i<nbGroups; ++i){
-				groups[i]->Kill((duegold*groups[i]->size)/oldsize);
+				groups[i]->Kill(0,(duegold*groups[i]->size)/oldsize);
 			}
 			for (int i=0; i<nbGroups; ++i){
 				if (groups[i]->size == 0){

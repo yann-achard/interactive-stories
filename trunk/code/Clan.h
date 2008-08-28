@@ -1,6 +1,8 @@
 #ifndef __CLAN_H__
 #define __CLAN_H__
 //---------------------------------------------------------
+#include <d3d9.h>
+#include <d3dx9.h>
 #include "Vec3Df.h"
 //---------------------------------------------------------
 class Group;
@@ -30,7 +32,6 @@ public:
 	float					temper;
 	float					d1temper;
 	float					d2temper;
-	float					pacifism;
 
 	Clan(){};
 	Clan(int _id, int x, int z, int _size);
@@ -38,13 +39,14 @@ public:
 
 	void	KillClan();
 	void	AddAlly(Clan* c);
+	void	RemoveAlly(Clan* c);
 	void	DeadAlly(Clan* c);
-	int		AllianceCost(Clan* c);
-	bool	AllianceOffer(Clan* c, int bribe);
 	void	UpgradeStamina();
 	bool	IsNextTo(Clan* c);
-	bool	RecievePeaceOffer(Clan* c);
-	bool	RecieveGoldOffering(int amount, Clan* donor);
+	int		AllianceCost(const Clan& c);
+	bool	ReceiveAllianceOffer(const Clan& c, int bribe);
+	bool	ReceivePeaceOffer(const Clan& c);
+	bool	ReceiveGoldOffering(int amount, Clan& donor);
 	void	KillGroup(int gid);
 	void	AddGroup(int x, int z, int _size);
 	void	AddGroup(int _id, int x, int z, int _size, double _stam);

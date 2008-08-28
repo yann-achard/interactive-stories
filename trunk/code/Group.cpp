@@ -8,6 +8,7 @@
 #include "Hud.h"
 #include "Clan.h"
 #include "Group.h"
+#include "Event.h"
 //---------------------------------------------------------
 Group::Group(int _id, int _x, int _z, int _size, Clan* _clan){
 	id = _id;
@@ -63,12 +64,13 @@ void Group::Combat(Group& target){
 	int gc = (target.clan->gold*bodycount)/target.clan->size;
 	target.clan->gold -= gc;
 	clan->gold += gc;
-	target.Kill(bodycount);
+	target.Kill(clan,bodycount);
 	if (target.size <= 0) target.clan->KillGroup(target.id);
 }
 //---------------------------------------------------------
-void Group::Kill(int bodycount){
+void Group::Kill(Clan* attacker, int bodycount){
 	sprintf(logstr, "\t\t\t- Group %s[%d]{%d}(%d,%d) lost %d units\n", clan->name,id,size,x,z, bodycount);	Log();
+	if (attacker) /*EVENT*/Event(*attacker, *clan, ET_Attack, bodycount/float(clan->size));
 	if (mining){
 		clan->goldintake -= size>=50 ? 250 : size*5;
 	}

@@ -5,6 +5,7 @@
 #include "Map.h"
 #include "d3ddefs.h"
 #include "main.h"
+#include "Event.h"
 //---------------------------------------------------------
 static char* apstrs[8] = {
 	"\n\n\n",
@@ -506,7 +507,7 @@ void Hud::Click(int x, int y){
 				sprintf(attackrez, "Attack power %d VS Defense power %d\n\n Enemy units killed: %d of %d\nGold collected: %d", apow, dpow, bodycount, enemy->size, gc);
 				enemy->clan->gold -= gc;
 				g_clan->gold += gc;
-				enemy->Kill(bodycount);
+				enemy->Kill(g_clan, bodycount);
 				if (enemy->size <= 0) enemy->clan->KillGroup(enemy->id);
 				UpdateText();
 			}
@@ -539,9 +540,11 @@ void Hud::Click(int x, int y){
 				spnum = 0;
 			} else if (y>=g_winy/2-112 && y<=g_winy/2-82){
 				// Peace offer
-				if (destclan->RecievePeaceOffer(g_clan)){
+				if (destclan->ReceivePeaceOffer(*g_clan)){
+					/*EVENT*/Event(*destclan, *g_clan, ET_AcceptPeaceOffer);
 					SetCaption("Peace offer accepted.");
 				} else {
+					/*EVENT*/Event(*destclan, *g_clan, ET_TurnDownOffer);
 					SetCaption("Peace offer rejected.");
 				}
 				offer = false;
@@ -550,16 +553,18 @@ void Hud::Click(int x, int y){
 				// Federate
 				if (g_allies[g_clan->id][destclan->id]){
 					SetCaption("Allready allies.");
-				} else if (destclan->AllianceOffer(g_clan, 0)){
-					SetCaption("Alliance accepted.");
-					g_clan->AddAlly(destclan);
-					destclan->AddAlly(g_clan);
-					UpdateText();
-					GoldPanel();
 				} else {
-					SetCaption("Alliance refused.");
-					/// More hate
-					;
+					if (destclan->ReceiveAllianceOffer(*g_clan, 0)){
+						SetCaption("Alliance accepted.");
+						/*EVENT*/Event(*destclan, *g_clan, ET_AcceptAllianceOffer);
+						g_clan->AddAlly(destclan);
+						destclan->AddAlly(g_clan);
+						UpdateText();
+						GoldPanel();
+					} else {
+						/*EVENT*/Event(*destclan, *g_clan, ET_TurnDownOffer);
+						SetCaption("Alliance refused.");
+					}
 				}
 			}
 		}
@@ -853,10 +858,11 @@ void Hud::PopupEnter(){
 		if (goldoffer){
 			goldoffer = false;
 			offer = false;
-			if (destclan->RecieveGoldOffering(spnum, g_clan)){
-				g_clan->gold -= spnum;
+			if (destclan->ReceiveGoldOffering(spnum, *g_clan)){
+				/*EVENT*/Event(*destclan, *g_clan, ET_AcceptGoldOffer);
 				SetCaption("Offer accepted");
 			} else {
+				/*EVENT*/Event(*destclan, *g_clan, ET_TurnDownOffer);
 				SetCaption("Offer refused");
 			}
 		} else {
