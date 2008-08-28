@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "Clan.h"
 #include "Map.h"
+#include "Event.h"
 //---------------------------------------------------------
 Game::Game(void){
 	run = true;
@@ -184,6 +185,7 @@ Game::~Game(void){
 
 	UnregisterClass("ClassName",GetModuleHandle(NULL));	
 
+	DeleteEventsDefinitions();
 	for (int i=g_nbClans-1; i>=0; --i){
 		delete g_clans[i];
 		delete g_stances[i];
@@ -192,6 +194,7 @@ Game::~Game(void){
 	}
 	delete g_clans;
 	delete g_stances;
+	delete g_peacewill;
 	delete g_belligerence;
 	delete g_friendliness;
 	delete g_board;
@@ -286,7 +289,7 @@ void Game::InitGame(void){
 	g_board = new Group*[g_side*g_side];
 	ZeroMemory(g_board,g_side*g_side*4);
 	g_viz = new char[g_side*g_side];
-	memset(g_viz,1,g_side*g_side);
+	/**/memset(g_viz,100,g_side*g_side);
 
 	g_nbClans = 5;
 	g_nbAliveClans = g_nbClans;
@@ -304,17 +307,20 @@ void Game::InitGame(void){
 	}
 	g_friendliness = new float*[g_nbClans];
 	g_belligerence = new float*[g_nbClans];
+	g_peacewill = new float*[g_nbClans];
 	g_stances = new float*[g_nbClans];
 	g_allies = new char*[g_nbClans];
 	for (int i=g_nbClans-1; i>=0; --i){
 		g_friendliness[i] = new float[g_nbClans];
 		g_belligerence[i] = new float[g_nbClans];
 		g_stances[i] = new float[g_nbClans];
+		g_peacewill[i] = new float[g_nbClans];
 		g_allies[i] = new char[g_nbClans];
 		for (int j=g_nbClans-1; j>=0; --j){
 			g_friendliness[i][j] = random(-10.0f,10.0f);
 			g_stances[i][j] = g_friendliness[i][j];
 			g_belligerence[i][j] = 1.0f;
+			g_peacewill[i][j] = 1.0f;
 			g_allies[i][j] = 0;
 		}
 	}
@@ -353,11 +359,30 @@ void Game::InitGame(void){
 	g_rot.set(-1.0f,0,0);	
 	g_hud = new Hud();
 	g_hud->UpdateText();
+
+	InitEventsDefinitions();
 }
 //---------------------------------------------------------
 void Game::Turn(void){
 	Stats();
 	sprintf(logstr, "############# Turn %3d #############\n",g_turn); Log();
+
+	Log("Tempers:\n");
+	for (int i=g_nbClans-1; i>=0; --i){
+		Clan& c = *g_clans[i];
+		if (c.alive){
+			sprintf(logstr,"\t%s\t%3.2f\n", c.name, c.temper); Log();
+			for (int j=g_nbClans-1; j>=0; --j){
+				Clan& d = *g_clans[j];
+				if (i==j || d.alive==false) continue;
+				sprintf(logstr,"\t\t- %s\t%3.2f\t%3.2f -> %3.2f\n", d.name, g_peacewill[i][j], g_belligerence[i][j], g_stances[i][j]); Log();
+			}
+		} else {
+			sprintf(logstr,"\t%s\t-Dead-\n", c.name); Log();
+		}
+	}
+	Log("--\n");
+
 	int newpop = 0;
 	for (int i=g_nbClans-1; i>=0; --i){
 		if (g_clans[i]->alive) {
@@ -367,23 +392,29 @@ void Game::Turn(void){
 	}
 	g_pop = newpop;
 	
+	if (g_turn==16){
+		int a =0;
+	}
+
 	// Update model
-	float dt = 0.1f;
+	float dt = 0.02f;
 	// First eval
 	for (int i=g_nbClans-1; i>=0; --i){
 		Clan& c = *g_clans[i];
-		c.d1temper = c.pacifism*c.temper*g_nbClans;
+		c.d1temper = 0.0f;
 		for (int j=g_nbClans-1; j>=0; --j){
-			c.d1temper -= g_belligerence[i][j]*g_clans[j]->temper+g_friendliness[i][j];
+			if (g_clans[j]->alive){
+				c.d1temper +=g_peacewill[i][j]*c.temper - g_belligerence[i][j]*g_clans[j]->temper + g_friendliness[i][j];
+			}
 		}
 		c.d1temper *= dt;
 	}
 	// Second eval
 	for (int i=g_nbClans-1; i>=0; --i){
 		Clan& c = *g_clans[i];
-		c.d2temper = c.pacifism*(c.temper+0.5f*c.d1temper)*g_nbClans;
+		c.d2temper = 0.0f;
 		for (int j=g_nbClans-1; j>=0; --j){
-			c.d2temper -= g_belligerence[i][j]*(g_clans[j]->temper+0.5f*g_clans[j]->d1temper)+g_friendliness[i][j];
+			c.d2temper += g_peacewill[i][j]*(c.temper+0.5f*c.d1temper) - g_belligerence[i][j]*(g_clans[j]->temper+0.5f*g_clans[j]->d1temper) + g_friendliness[i][j];
 		}
 		c.d2temper *= dt;
 		c.temper += c.d2temper;
@@ -394,10 +425,21 @@ void Game::Turn(void){
 	for (int i=g_nbClans-1; i>=0; --i){
 		Clan& c = *g_clans[i];
 		for (int j=g_nbClans-1; j>=0; --j){
-			g_stances[i][j] = c.temper*(c.pacifism-g_belligerence[i][j])+g_friendliness[i][j];
+			g_stances[i][j] = g_peacewill[i][j]*c.temper - g_belligerence[i][j]*g_clans[j]->temper + g_friendliness[i][j];
+			if (g_stances[i][j] > 100.0f) g_stances[i][j]=100.0f;
+			else if (g_stances[i][j] < -100.0f) g_stances[i][j]=-100.0f;
 		}
 	}
 
+	// Check alliances
+	for (int i=g_nbClans-1; i>=0; --i){
+		if (g_clans[i]->alive==false) continue;
+		for (int j=g_nbClans-1; j>=0; --j){
+			if (i==j || g_clans[j]->alive==false || g_allies[i][j]==0 || (g_stances[i][j]>=40.0f && g_stances[j][i]>=40.0f)) continue;
+			g_clans[i]->RemoveAlly(g_clans[j]);
+			g_clans[j]->RemoveAlly(g_clans[i]);
+		}
+	}
 
 	Log("####################################\n");
 	++g_turn;

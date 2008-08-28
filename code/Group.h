@@ -21,7 +21,7 @@ public:
 	void	StartMining();
 	void	StopMining();
 	void	Combat(Group& target);
-	void	Kill(int bodycount);
+	void	Kill(Clan* attacker, int bodycount);
 	void	MarkPosition();
 	void	RenderSelection();
 	void	SetVizibility();

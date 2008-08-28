@@ -26,7 +26,7 @@ Map::Map(){
 	hspan = 40000.0f;
 	vspan =  6000.0f;
 	hd = 500;
-	gd = 10;
+	gd = 25;
 	hdhgap = hspan/(float)hd;
 	gdhgap = hspan/(float)gd;
 	hdgd = hd/gd;

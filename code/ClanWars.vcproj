@@ -211,6 +211,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Event.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Game.cpp"
 				>
 			</File>
@@ -291,6 +295,10 @@
 			</File>
 			<File
 				RelativePath="d3ddefs.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Event.h"
 				>
 			</File>
 			<File

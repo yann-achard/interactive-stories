@@ -72,6 +72,7 @@ extern int					g_turn;
 extern char*				g_viz;
 extern char**				g_allies;
 extern float**			g_stances;
+extern float**			g_peacewill;
 extern float**			g_friendliness;
 extern float**			g_belligerence;
 //------------------------------------------------

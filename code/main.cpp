@@ -51,6 +51,7 @@
  char*				g_viz;
  char**				g_allies;
  float**			g_stances;
+ float**			g_peacewill;
  float**			g_friendliness;
  float**			g_belligerence;
 //------------------------------------------------
