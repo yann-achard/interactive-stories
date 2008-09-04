@@ -291,7 +291,7 @@ void Game::InitGame(void){
 	g_viz = new char[g_side*g_side];
 	/**/memset(g_viz,100,g_side*g_side);
 
-	g_nbClans = 5;
+	g_nbClans = 3;
 	g_nbAliveClans = g_nbClans;
 	g_clans = new Clan*[g_nbClans];
 	g_pop = 0;
@@ -318,14 +318,21 @@ void Game::InitGame(void){
 		g_allies[i] = new char[g_nbClans];
 		for (int j=g_nbClans-1; j>=0; --j){
 			g_friendliness[i][j] = random(-10.0f,10.0f);
-			g_stances[i][j] = g_friendliness[i][j];
+			//g_stances[i][j] = g_friendliness[i][j];
 			g_belligerence[i][j] = 1.0f;
 			g_peacewill[i][j] = 1.0f;
 			g_allies[i][j] = 0;
 		}
 	}
+	for (int i=g_nbClans-1; i>=0; --i){
+		for (int j=g_nbClans-1; j>=0; --j){
+			g_friendliness[i][j] = g_friendliness[j][i];
+			g_stances[i][j] = g_friendliness[i][j];
+		}
+	}
+	
 
-	//g_nbMines = int((((float)g_pop/1.5f)/50)/5);
+	g_miner = 3.0f;
 	g_nbMines = 5;
 	g_nbFreeMines = g_nbMines;
 	g_mines = new int[g_nbMines][2];
@@ -391,10 +398,6 @@ void Game::Turn(void){
 		}
 	}
 	g_pop = newpop;
-	
-	if (g_turn==16){
-		int a =0;
-	}
 
 	// Update model
 	float dt = 0.02f;
@@ -404,7 +407,7 @@ void Game::Turn(void){
 		c.d1temper = 0.0f;
 		for (int j=g_nbClans-1; j>=0; --j){
 			if (g_clans[j]->alive){
-				c.d1temper +=g_peacewill[i][j]*c.temper - g_belligerence[i][j]*g_clans[j]->temper + g_friendliness[i][j];
+				c.d1temper += g_belligerence[i][j]*g_clans[j]->temper - g_peacewill[i][j]*c.temper - g_friendliness[i][j];
 			}
 		}
 		c.d1temper *= dt;
@@ -414,13 +417,24 @@ void Game::Turn(void){
 		Clan& c = *g_clans[i];
 		c.d2temper = 0.0f;
 		for (int j=g_nbClans-1; j>=0; --j){
-			c.d2temper += g_peacewill[i][j]*(c.temper+0.5f*c.d1temper) - g_belligerence[i][j]*(g_clans[j]->temper+0.5f*g_clans[j]->d1temper) + g_friendliness[i][j];
+			c.d2temper += g_belligerence[i][j]*(g_clans[j]->temper+0.5f*g_clans[j]->d1temper) - g_peacewill[i][j]*(c.temper+0.5f*c.d1temper) - g_friendliness[i][j];
 		}
-		c.d2temper *= dt;
-		c.temper += c.d2temper;
-		if (c.temper > 100.0f) c.temper = 100.0f;
-		else if (c.temper < 0.0f) c.temper = 0.0f;
+
+		// Reset or update
+		if (c.temper==100.0f && c.d2temper>0.0f){
+			c.temper = random(40.0f, 60.0f);
+			sprintf(logstr, "Resetting %s to %3.2f\n", c.name, c.temper); Log();
+		} else if (c.temper<0.01f && c.d2temper<0.0f){
+			c.temper = random(40.0f, 60.0f);
+			sprintf(logstr, "Resetting %s to %3.2f\n", c.name, c.temper); Log();
+		} else {
+			c.d2temper *= dt;
+			c.temper += c.d2temper;
+			if (c.temper > 100.0f) c.temper = 100.0f;
+			else if (c.temper < 0.01f) c.temper = 0.01f;
+		}
 	}
+
 	// Update stances
 	for (int i=g_nbClans-1; i>=0; --i){
 		Clan& c = *g_clans[i];

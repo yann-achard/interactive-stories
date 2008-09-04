@@ -39,15 +39,15 @@ Group::~Group(){
 void Group::StartMining(){
 	if (mining) return;
 	mining = true;
-	clan->goldintake += size>=50 ? 250 : size*5;
-	sprintf(logstr, "\t\t\t- Group %s[%d]{%d}(%d,%d) started mining\n", clan->name,id,size,x,z);	Log();
+	clan->goldintake += (int)(g_miner*(size>=50 ? 50.0f : (float)size));
+	//sprintf(logstr, "\t\t\t- Group %s[%d]{%d}(%d,%d) started mining\n", clan->name,id,size,x,z);	Log();
 }
 //---------------------------------------------------------
 void Group::StopMining(){
 	if (!mining) return;
 	mining = false;
-	clan->goldintake -= size>=50 ? 250 : size*5;
-	sprintf(logstr, "\t\t\t- Group %s[%d]{%d}(%d,%d) stopped mining\n", clan->name,id,size,x,z);	Log();
+	clan->goldintake -= (int)(g_miner*(size>=50 ? 50.0f : (float)size));
+	//sprintf(logstr, "\t\t\t- Group %s[%d]{%d}(%d,%d) stopped mining\n", clan->name,id,size,x,z);	Log();
 }
 //---------------------------------------------------------
 void Group::Combat(Group& target){
@@ -71,9 +71,8 @@ void Group::Combat(Group& target){
 void Group::Kill(Clan* attacker, int bodycount){
 	sprintf(logstr, "\t\t\t- Group %s[%d]{%d}(%d,%d) lost %d units\n", clan->name,id,size,x,z, bodycount);	Log();
 	if (attacker) /*EVENT*/Event(*attacker, *clan, ET_Attack, bodycount/float(clan->size));
-	if (mining){
-		clan->goldintake -= size>=50 ? 250 : size*5;
-	}
+	bool wasMining = mining;
+	if (wasMining) StopMining();
 	g_pop -= bodycount;
 	clan->size -= bodycount;
 	for (int i=clan->nbAllies-1; i>=0; --i){
@@ -83,9 +82,7 @@ void Group::Kill(Clan* attacker, int bodycount){
 	if (bodycount >= size){
 		size = 0;
 	} else {
-		if (mining){
-			clan->goldintake += size>=50 ? 250 : size*5;
-		}
+		if (wasMining) StartMining();
 		size -= bodycount;
 	}
 }
@@ -240,7 +237,7 @@ void Group::HeadFor(int hx, int hz){
 		}
 	}
 	stamina -= distFromManhattan(safex-x,safez-z);
-	sprintf(logstr, "\t\t\t- Group %s[%d]{%d}(%d,%d) -> (%d,%d) >> (%d,%d)\n", clan->name,id,size,x,z,safex,safez,hx,hz);	Log();
+	//sprintf(logstr, "\t\t\t- Group %s[%d]{%d}(%d,%d) -> (%d,%d) >> (%d,%d)\n", clan->name,id,size,x,z,safex,safez,hx,hz);	Log();
 	AiMoveTo(safex, safez);
 }
 //---------------------------------------------------------

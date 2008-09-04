@@ -69,6 +69,7 @@ extern Group**			g_board;
 extern int					g_pop;
 extern int					g_selectedpop;
 extern int					g_turn;
+extern float				g_miner;
 extern char*				g_viz;
 extern char**				g_allies;
 extern float**			g_stances;

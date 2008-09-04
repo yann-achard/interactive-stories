@@ -48,6 +48,7 @@
  int					g_turn;
  int					g_selectedpop;
  int					g_pop;
+ float				g_miner;
  char*				g_viz;
  char**				g_allies;
  float**			g_stances;
