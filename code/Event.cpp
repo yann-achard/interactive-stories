@@ -48,21 +48,21 @@ specialProcess(sp)
 }
 //---------------------------------------------------------
 void EventDef::ProcessEvent(const Event& e) const {
-	int aid = e.actor.id;
-	int rid = e.receiver.id;
+	int a = e.actor.id;
+	int r = e.receiver.id;
 
-	g_belligerence[aid][rid] += affectActorBelligerence * e.relevance;
-	g_peacewill[aid][rid] += affectActorPeacewill * e.relevance;
-	g_belligerence[rid][aid] += affectReceiverBelligerence * e.relevance;
-	g_peacewill[rid][aid] += affectReceiverPeacewill * e.relevance;
+	g_belligerence[a][r] += affectActorBelligerence * e.relevance;
+	g_peacewill[a][r] += affectActorPeacewill * e.relevance;
+	g_belligerence[r][a] += affectReceiverBelligerence * e.relevance;
+	g_peacewill[r][a] += affectReceiverPeacewill * e.relevance;
 
-	g_stances[aid][rid] = g_peacewill[aid][rid]*e.actor.temper - g_belligerence[aid][rid]*e.receiver.temper + g_friendliness[aid][rid];
-	if (g_stances[aid][rid] > 100.0f) g_stances[aid][rid] = 100.0f;
-	else if (g_stances[aid][rid] < -100.0f) g_stances[aid][rid] = -100.0f;
+	g_stances[a][r] = g_peacewill[a][r]*e.actor.temper - g_belligerence[a][r]*e.receiver.temper + g_friendliness[a][r];
+	if (g_stances[a][r] > 100.0f) g_stances[a][r] = 100.0f;
+	else if (g_stances[a][r] < -100.0f) g_stances[a][r] = -100.0f;
 
-	g_stances[rid][aid] = g_peacewill[rid][aid]*e.receiver.temper - g_belligerence[rid][aid]*e.actor.temper + g_friendliness[rid][aid];
-	if (g_stances[rid][aid] > 100.0f) g_stances[rid][aid] = 100.0f;
-	else if (g_stances[rid][aid] < -100.0f) g_stances[rid][aid] = -100.0f;
+	g_stances[r][a] = g_peacewill[r][a]*e.receiver.temper - g_belligerence[r][a]*e.actor.temper + g_friendliness[r][a];
+	if (g_stances[r][a] > 100.0f) g_stances[r][a] = 100.0f;
+	else if (g_stances[r][a] < -100.0f) g_stances[r][a] = -100.0f;
 
 	if (EventDef::specialProcess != 0){
 		(EventDef::specialProcess)(e);
@@ -83,41 +83,86 @@ void PropagateToAlliesAndEnemies(const Event& e){
 }
 //---------------------------------------------------------
 void EstablishPeace(const Event& e){
-	int aid = e.actor.id;
-	int rid = e.receiver.id;
+	int a = e.actor.id;
+	int r = e.receiver.id;
 	
-	if (g_stances[aid][rid] < 0.0f){
-		g_peacewill[aid][rid] = (e.receiver.temper*g_belligerence[rid][aid])/e.actor.temper;
-		g_stances[aid][rid] = 0.0f;
+	// Old
+	if (g_stances[a][r] < 0.0f){
+		g_peacewill[a][r] = (e.receiver.temper*g_belligerence[r][a])/e.actor.temper;
+		g_stances[a][r] = 0.0f;
 	}
-	if (g_stances[rid][aid] < 0.0f){
-		g_peacewill[rid][aid] = (e.actor.temper*g_belligerence[aid][rid])/e.receiver.temper;
-		g_stances[rid][aid] = 0.0f;
+	if (g_stances[r][a] < 0.0f){
+		g_peacewill[r][a] = (e.actor.temper*g_belligerence[a][r])/e.receiver.temper;
+		g_stances[r][a] = 0.0f;
 	}
+	
+	// New
+	/*
+	if (g_stances[a][r] < 0.0f){
+		float rez = (-g_friendliness[a][r])/(e.actor.temper - e.receiver.temper);
+		g_peacewill[a][r] = rez;
+		g_belligerence[a][r] = rez;
+		g_stances[a][r] = 0.0f;
+	}
+	if (g_stances[r][a] < 0.0f){
+		float rez = (-g_friendliness[r][a])/(e.receiver.temper - e.actor.temper);
+		g_peacewill[r][a] = rez;
+		g_belligerence[r][a] = rez;
+		g_stances[r][a] = 0.0f;
+	}
+	*/
 }
 //---------------------------------------------------------
 void EstablishAlliance(const Event& e){
-	int aid = e.actor.id;
-	int rid = e.receiver.id;
+	int a = e.actor.id;
+	int r = e.receiver.id;
 	
-	if (g_stances[aid][rid] < 60.0f){
-		g_peacewill[aid][rid] = (e.receiver.temper*g_belligerence[rid][aid]+60.0f)/e.actor.temper;
-		g_stances[aid][rid] = 60.0f;
+	// Modify Bel
+	if (g_stances[a][r] < 60.0f){
+		g_belligerence[a][r] = (e.actor.temper*g_peacewill[a][r]+g_friendliness[a][r]-60.0f)/e.receiver.temper;
+		g_stances[a][r] = 60.0f;
 	}
-	if (g_stances[rid][aid] < 60.0f){
-		g_peacewill[rid][aid] = (e.actor.temper*g_belligerence[aid][rid]+60.0f)/e.receiver.temper;
-		g_stances[rid][aid] = 60.0f;
+	if (g_stances[r][a] < 60.0f){
+		g_belligerence[r][a] = (e.receiver.temper*g_peacewill[r][a]+g_friendliness[r][a]-60.0f)/e.actor.temper;
+		g_stances[r][a] = 60.0f;
 	}
+	
+	/*
+	// Modify PeaceWill
+	if (g_stances[a][r] < 60.0f){
+		g_peacewill[a][r] = (e.receiver.temper*g_belligerence[a][r]+60.0f)/e.actor.temper;
+		g_stances[a][r] = 60.0f;
+	}
+	if (g_stances[r][a] < 60.0f){
+		g_peacewill[r][a] = (e.actor.temper*g_belligerence[r][a]+60.0f)/e.receiver.temper;
+		g_stances[r][a] = 60.0f;
+	}
+
+	// Modify both
+	if (g_stances[a][r] < 60.0f){
+		float rez = (60.0f-g_friendliness[a][r])/(e.actor.temper - e.receiver.temper);
+		g_peacewill[a][r] = rez;
+		g_belligerence[a][r] = rez;
+		g_stances[a][r] = 60.0f;
+	}
+	if (g_stances[r][a] < 60.0f){
+		float rez = (60.0f-g_friendliness[r][a])/(e.receiver.temper - e.actor.temper);
+		g_peacewill[r][a] = rez;
+		g_belligerence[r][a] = rez;
+		g_stances[r][a] = 60.0f;
+	}
+	*/
+
 }
 //---------------------------------------------------------
 void InitEventsDefinitions(){
 	g_events = new EventDef*[9];
 	//																							 Event Type						   AcBel	AcPea   ReBel   RePea
-	g_events[ET_Attack] =								new EventDef(ET_Attack,							 -0.5f,	 0.5f,   2.2f,  -0.4f, &PropagateToAlliesAndEnemies);
+	g_events[ET_Attack] =								new EventDef(ET_Attack,							  0,	   0,      2.2f,  -0.4f, &PropagateToAlliesAndEnemies);
 	g_events[ET_AllyAttack] =						new EventDef(ET_AllyAttack,						0,     0,      0.6f,  -0.2f);
 	g_events[ET_EnemyAttack] =					new EventDef(ET_EnemyAttack,					0,     0,     -0.6f,   0.2f);
 
-	g_events[ET_Offer] =								new EventDef(ET_Offer,								0,     0,     -0.1f,   0.2f);
+	g_events[ET_Offer] =								new EventDef(ET_Offer,								0,     0,     -0.1f,   0.1f);
 	g_events[ET_TurnDownOffer] =				new EventDef(ET_TurnDownOffer, 				0,     0,      0.1f,  -0.3f);
 	g_events[ET_AcceptGoldOffer] =			new EventDef(ET_AcceptGoldOffer,			0,     0,     -0.3f,   0.3f);
 	g_events[ET_AcceptPeaceOffer] =			new EventDef(ET_AcceptPeaceOffer,			0,     0,     -0.4f,   0.3f, &EstablishPeace);

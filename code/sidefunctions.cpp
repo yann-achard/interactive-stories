@@ -77,12 +77,22 @@ void Stats(){
 	*/
 	for (int i=0; i<g_nbClans; ++i){
 		Clan& c = *g_clans[i];
-		fprintf(fh, "%3.2f\t",c.temper);
+		if (c.alive) {
+			fprintf(fh, "%3.2f\t",c.temper);
+		} else {
+			fprintf(fh, "%3.2f\t",0.0f);
+		}
 	}
 	for (int i=0; i<g_nbClans; ++i){
+		Clan& c = *g_clans[i];
 		for (int j=0; j<g_nbClans; ++j){
+			Clan& d = *g_clans[j];
 			if (i==j) continue;
-			fprintf(fh, "%3.2f\t",g_stances[i][j]);
+			if (c.alive && d.alive) {
+				fprintf(fh, "%3.2f\t",g_stances[i][j]);
+			} else {
+				fprintf(fh, "%3.2f\t",0.0f);
+			}
 		}
 	}
 	fprintf(fh,"\n");

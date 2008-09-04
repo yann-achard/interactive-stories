@@ -22,10 +22,10 @@ Clan::Clan(int _id, int x, int z, int _size){
 	alliancePop = size;
 	nbAllies = 0;
 	nbGroups = 1;
-	gold = 10000;
+	gold = 20000;
 	myMines = 0;
 	goldintake = 0;
-	stamina = 1.5;
+	stamina = 2.9;
 	attack = 1;
 	defense = 1;
 	culture = 1;
@@ -254,7 +254,7 @@ void Clan::Turn(){
 	CheckBoardConsistency();
 #endif///DEBUG
 
-	sprintf(logstr, "%s begins it's turn with %d gold and %d units\n", name, gold, size); Log();
+	//sprintf(logstr, "%s begins it's turn with %d gold and %d units\n", name, gold, size); Log();
 	// Get more allies
 	float score=-1000, bestscore=0;
 	Clan* bestclan = NULL;
@@ -272,16 +272,16 @@ void Clan::Turn(){
 		if (bestclan==NULL) break;
 		int price = bestclan->AllianceCost(*this);
 		if (price==0 || price<=savings){
-			sprintf(logstr, "\t- Offering alliance to %s clan for %d gold\n", bestclan->name, price); Log();
+			//sprintf(logstr, "\t- Offering alliance to %s clan for %d gold\n", bestclan->name, price); Log();
 			if (bestclan->ReceiveAllianceOffer(*this, price)){
 				/*EVENT*/Event(*bestclan, *this, ET_AcceptAllianceOffer);
-				Log("\t\t- Alliance accepted\n");
+			//	Log("\t\t- Alliance accepted\n");
 				gold -= price;
 				bestclan->gold += price;
 				AddAlly(bestclan);
 				bestclan->AddAlly(this);
 			} else {
-				Log("\t\t- Alliance rejected\n");
+			//	Log("\t\t- Alliance rejected\n");
 				/*EVENT*/Event(*bestclan, *this, ET_TurnDownOffer);
 			}
 		}
@@ -298,34 +298,34 @@ void Clan::Turn(){
 			++g_nbFreeMines;
 		}
 	}
-	sprintf(logstr, "\t- Mines owned: %d/%d gold:%d intake:%d size:%d\n", myMines, g_nbMines, gold, goldintake, size); Log();
+	//sprintf(logstr, "\t- Mines owned: %d/%d gold:%d intake:%d size:%d\n", myMines, g_nbMines, gold, goldintake, size); Log();
 
 	// Clan Growth
 	if (g_nbFreeMines){
-		sprintf(logstr, "\t- Going for free mines (%d)\n", g_nbFreeMines); Log();
+		//sprintf(logstr, "\t- Going for free mines (%d)\n", g_nbFreeMines); Log();
 		RebalanceMineExploitation();
 	} else {
 		if (goldintake > size) {
 			int future = (myMines==g_nbMines) ? 20 : 10;
 			if (g_nbAliveClans>1 && gold-size*future>0) {
-				Log("\t- Going to war by choice\n");
+				//Log("\t- Going to war by choice\n");
 				TotalWar();
 			} else {
-				Log("\t- Sotcking on gold\n");
+				//Log("\t- Sotcking on gold\n");
 				if (CheckForUnbalancedMineExploitation()){
-					Log("\t\t- Rebalancing exploitation\n");
+				//	Log("\t\t- Rebalancing exploitation\n");
 					RebalanceMineExploitation();
 				}
 			}
 		} else {
 			if (CheckForMineUnderExploitation()){
-				Log("\t- Going for under-exploited mines\n");
+			//	Log("\t- Going for under-exploited mines\n");
 				RebalanceMineExploitation();
 			} else if (g_nbAliveClans>1){
-				Log("\t- Going to war for survival\n");
+			//	Log("\t- Going to war for survival\n");
 				SendSurplusToWar();
 			} else {
-				Log("\t- Slowly dying with nothing to do\n");
+			//	Log("\t- Slowly dying with nothing to do\n");
 			}
 		}
 	}
@@ -335,7 +335,7 @@ void Clan::Turn(){
 #ifdef DEBUG
 	CheckBoardConsistency();
 #endif///DEBUG
-	sprintf(logstr, "%s ends it's turn with %d gold and %d units\n\n", name, gold, size); Log();
+	//sprintf(logstr, "%s ends it's turn with %d gold and %d units\n\n", name, gold, size); Log();
 }
 //---------------------------------------------------------
 void Clan::AttackTarget(Group& target){
@@ -449,15 +449,13 @@ void Clan::SendSurplusToWar(){
 
 	if (nbFreeGroups==0) return TotalWar();
 
-	int best;
 	Group* target = NULL;
 	for (int i=g_nbMines-1; i>=0; --i){
 		int xm = g_mines[i][0];
 		int zm = g_mines[i][1];
 		Group* mg = g_board[xm*g_side+zm];
 		assert(mg);
-		if (mg->clan!=this && (target==NULL || mg->size<best)){
-			best = mg->size;
+		if (mg->clan!=this && (target==NULL || g_stances[id][mg->id]<g_stances[id][target->id] || (target->clan==mg->clan || target->size>mg->size))){
 			target = mg;
 		}
 	}
@@ -483,6 +481,7 @@ bool Clan::CheckForMineUnderExploitation(){
 }
 //---------------------------------------------------------
 bool Clan::CheckForUnbalancedMineExploitation(){
+	if (g_nbFreeMines+myMines==0) return false;
 	int slice = size/(g_nbFreeMines+myMines);
 	bool idle = false;
 	for (int i=nbGroups-1; i>=0; --i){
