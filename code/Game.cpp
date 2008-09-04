@@ -291,8 +291,9 @@ void Game::InitGame(void){
 	g_viz = new char[g_side*g_side];
 	/**/memset(g_viz,100,g_side*g_side);
 
-	g_nbClans = 3;
+	g_nbClans = 4;
 	g_nbAliveClans = g_nbClans;
+	g_maxallies = (int)(((float)g_nbAliveClans)/2.5f);
 	g_clans = new Clan*[g_nbClans];
 	g_pop = 0;
 	for (int i=g_nbClans-1; i>=0; --i){
@@ -332,8 +333,8 @@ void Game::InitGame(void){
 	}
 	
 
-	g_miner = 3.0f;
-	g_nbMines = 5;
+	g_miner = 3.5f;
+	g_nbMines = 6;
 	g_nbFreeMines = g_nbMines;
 	g_mines = new int[g_nbMines][2];
 	/*
@@ -390,6 +391,7 @@ void Game::Turn(void){
 	}
 	Log("--\n");
 
+	g_maxallies = (int)(((float)g_nbAliveClans)/2.5f);
 	int newpop = 0;
 	for (int i=g_nbClans-1; i>=0; --i){
 		if (g_clans[i]->alive) {
@@ -422,16 +424,16 @@ void Game::Turn(void){
 
 		// Reset or update
 		if (c.temper==100.0f && c.d2temper>0.0f){
-			c.temper = random(40.0f, 60.0f);
+			c.temper = random(70.0f, 95.0f);
 			sprintf(logstr, "Resetting %s to %3.2f\n", c.name, c.temper); Log();
-		} else if (c.temper<0.01f && c.d2temper<0.0f){
-			c.temper = random(40.0f, 60.0f);
+		} else if (c.temper<=1.0f && c.d2temper<0.0f){
+			c.temper = random(5.0f, 30.0f);
 			sprintf(logstr, "Resetting %s to %3.2f\n", c.name, c.temper); Log();
 		} else {
 			c.d2temper *= dt;
 			c.temper += c.d2temper;
 			if (c.temper > 100.0f) c.temper = 100.0f;
-			else if (c.temper < 0.01f) c.temper = 0.01f;
+			else if (c.temper < 1.0f) c.temper = 1.0f;
 		}
 	}
 

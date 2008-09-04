@@ -52,7 +52,7 @@ int Clan::AllianceCost(const Clan& c){
 	} else {
 		price = int((float)c.gold*((50.0f-g_stances[id][c.id])/150.0f));
 	}
-	sprintf(logstr, "\t\t\t- Price of alliance from %s to %s: %d\n", c.name, name, price); Log();
+	//sprintf(logstr, "\t\t\t- Price of alliance from %s to %s: %d\n", c.name, name, price); Log();
 	return (price);
 }
 //---------------------------------------------------------
@@ -258,7 +258,7 @@ void Clan::Turn(){
 	// Get more allies
 	float score=-1000, bestscore=0;
 	Clan* bestclan = NULL;
-	while (true){
+	while (nbAllies < g_maxallies){
 		int savings = (goldintake-size)>0 ? gold : gold+(goldintake-size)*10;
 		bestclan = NULL;
 		for (int i=g_nbClans-1; i>=0; --i){
@@ -353,6 +353,8 @@ void Clan::AttackTarget(Group& target){
 			// Something is blocking us
 			int idx = g.GetNextCell(target.x,target.z);
 			assert(g_board[idx]);
+			// Don't target allies
+			if (g_allies[id][g_board[idx]->id]) continue;
 			g.Combat(*g_board[idx]);
 		}
 	}
@@ -427,6 +429,8 @@ void Clan::RegroupNonMiningGroups(Group* target){
 				// Something is blocking us
 				int idx = g.GetNextCell(big->x,big->z);
 				assert(g_board[idx]);
+				// Don't target allies
+				if (g_allies[id][g_board[idx]->id]) continue;
 				g.Combat(*g_board[idx]);
 			}
 		}
@@ -455,7 +459,11 @@ void Clan::SendSurplusToWar(){
 		int zm = g_mines[i][1];
 		Group* mg = g_board[xm*g_side+zm];
 		assert(mg);
-		if (mg->clan!=this && (target==NULL || g_stances[id][mg->id]<g_stances[id][target->id] || (target->clan==mg->clan || target->size>mg->size))){
+		if (mg->clan!=this && g_allies[id][mg->clan->id]==0 && 
+				(target==NULL || g_stances[id][mg->id]<g_stances[id][target->id] ||
+				 (target->clan==mg->clan || target->size>mg->size)
+				)
+			 ){
 			target = mg;
 		}
 	}
