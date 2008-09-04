@@ -80,7 +80,7 @@ void Stats(){
 		if (c.alive) {
 			fprintf(fh, "%3.2f\t",c.temper);
 		} else {
-			fprintf(fh, "%3.2f\t",0.0f);
+			fprintf(fh, "0.0000\t");
 		}
 	}
 	for (int i=0; i<g_nbClans; ++i){
@@ -91,7 +91,7 @@ void Stats(){
 			if (c.alive && d.alive) {
 				fprintf(fh, "%3.2f\t",g_stances[i][j]);
 			} else {
-				fprintf(fh, "%3.2f\t",0.0f);
+				fprintf(fh, "0.0000\t");
 			}
 		}
 	}

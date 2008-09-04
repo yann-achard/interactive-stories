@@ -53,6 +53,7 @@ void Group::StopMining(){
 void Group::Combat(Group& target){
 	int apow;	int dpow; int bodycount;
 	sprintf(logstr, "\t\t\t- Group %s[%d]{%d}(%d,%d) vs %s[%d]{%d}(%d,%d)\n", clan->name,id,size,x,z, target.clan->name,target.id,target.size,target.x,target.z);	Log();
+	//assert(g_allies[target.clan->id][clan->id]==0);
 	assert(target.clan != clan);
 	assert(target.x == target.clan->groups[target.id]->x);
 	assert(target.z == target.clan->groups[target.id]->z);

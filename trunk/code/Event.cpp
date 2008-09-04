@@ -31,10 +31,11 @@ receiver(re),
 type(t),
 relevance(relev)
 {
-	sprintf(logstr, "/*EVENT*/ %s -> %s %s %.3f\n", ac.name, re.name, eventstr[t], relev); Log();
-	sprintf(logstr, "\t\tBefore: %s(%.1f) %.1f -> %.1f %s(%.1f)\n", ac.name, ac.temper, g_stances[ac.id][re.id], g_stances[re.id][ac.id], re.name, re.temper); Log();
+
+	sprintf(logstr, "EVENT >> %s -> %s %s %.3f\n", ac.name, re.name, eventstr[t], relev); Log();
+	sprintf(logstr, "\tBefore: %s(%.1f) %.1f -> %.1f %s(%.1f)\n", ac.name, ac.temper, g_stances[ac.id][re.id], g_stances[re.id][ac.id], re.name, re.temper); Log();
 	g_events[t]->ProcessEvent(*this);
-	sprintf(logstr, "\t\tAfter:  %s(%.1f) %.1f -> %.1f %s(%.1f)\n", ac.name, ac.temper, g_stances[ac.id][re.id], g_stances[re.id][ac.id], re.name, re.temper); Log();
+	sprintf(logstr, "\tAfter:  %s(%.1f) %.1f -> %.1f %s(%.1f)\n", ac.name, ac.temper, g_stances[ac.id][re.id], g_stances[re.id][ac.id], re.name, re.temper); Log();
 }
 //---------------------------------------------------------
 EventDef::EventDef(EventType etype, float ab, float ap, float rb, float rp, void (*sp)(const Event&)):
@@ -117,17 +118,6 @@ void EstablishAlliance(const Event& e){
 	int a = e.actor.id;
 	int r = e.receiver.id;
 	
-	// Modify Bel
-	if (g_stances[a][r] < 60.0f){
-		g_belligerence[a][r] = (e.actor.temper*g_peacewill[a][r]+g_friendliness[a][r]-60.0f)/e.receiver.temper;
-		g_stances[a][r] = 60.0f;
-	}
-	if (g_stances[r][a] < 60.0f){
-		g_belligerence[r][a] = (e.receiver.temper*g_peacewill[r][a]+g_friendliness[r][a]-60.0f)/e.actor.temper;
-		g_stances[r][a] = 60.0f;
-	}
-	
-	/*
 	// Modify PeaceWill
 	if (g_stances[a][r] < 60.0f){
 		g_peacewill[a][r] = (e.receiver.temper*g_belligerence[a][r]+60.0f)/e.actor.temper;
@@ -138,6 +128,17 @@ void EstablishAlliance(const Event& e){
 		g_stances[r][a] = 60.0f;
 	}
 
+	// Modify Bel
+	/*
+	if (g_stances[a][r] < 60.0f){
+		g_belligerence[a][r] = (e.actor.temper*g_peacewill[a][r]-60.0f)/e.receiver.temper;
+		g_stances[a][r] = 60.0f;
+	}
+	if (g_stances[r][a] < 60.0f){
+		g_belligerence[r][a] = (e.receiver.temper*g_peacewill[r][a]-60.0f)/e.actor.temper;
+		g_stances[r][a] = 60.0f;
+	}
+	
 	// Modify both
 	if (g_stances[a][r] < 60.0f){
 		float rez = (60.0f-g_friendliness[a][r])/(e.actor.temper - e.receiver.temper);
@@ -158,7 +159,7 @@ void EstablishAlliance(const Event& e){
 void InitEventsDefinitions(){
 	g_events = new EventDef*[9];
 	//																							 Event Type						   AcBel	AcPea   ReBel   RePea
-	g_events[ET_Attack] =								new EventDef(ET_Attack,							  0,	   0,      2.2f,  -0.4f, &PropagateToAlliesAndEnemies);
+	g_events[ET_Attack] =								new EventDef(ET_Attack,							  0,	   0,      3.2f,  -1.8f, &PropagateToAlliesAndEnemies);
 	g_events[ET_AllyAttack] =						new EventDef(ET_AllyAttack,						0,     0,      0.6f,  -0.2f);
 	g_events[ET_EnemyAttack] =					new EventDef(ET_EnemyAttack,					0,     0,     -0.6f,   0.2f);
 
