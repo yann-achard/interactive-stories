@@ -52,10 +52,11 @@ void EventDef::ProcessEvent(const Event& e) const {
 	int a = e.actor.id;
 	int r = e.receiver.id;
 
-	g_belligerence[a][r] += affectActorBelligerence * e.relevance;
-	g_peacewill[a][r] += affectActorPeacewill * e.relevance;
-	g_belligerence[r][a] += affectReceiverBelligerence * e.relevance;
-	g_peacewill[r][a] += affectReceiverPeacewill * e.relevance;
+	g_belligerence[a][r] = (g_belligerence[a][r]*e.receiver.temper + affectActorBelligerence*e.relevance) / e.receiver.temper;
+	g_peacewill[a][r] = (g_peacewill[a][r]*e.actor.temper + affectActorPeacewill*e.relevance) / e.actor.temper;
+
+	g_belligerence[r][a] = (g_belligerence[r][a]*e.actor.temper + affectReceiverBelligerence*e.relevance) / e.actor.temper;
+	g_peacewill[r][a] = (g_peacewill[r][a]*e.receiver.temper + affectReceiverPeacewill*e.relevance) / e.receiver.temper;
 
 	g_stances[a][r] = g_peacewill[a][r]*e.actor.temper - g_belligerence[a][r]*e.receiver.temper + g_friendliness[a][r];
 	if (g_stances[a][r] > 100.0f) g_stances[a][r] = 100.0f;
@@ -159,17 +160,17 @@ void EstablishAlliance(const Event& e){
 void InitEventsDefinitions(){
 	g_events = new EventDef*[9];
 	//																							 Event Type						   AcBel	AcPea   ReBel   RePea
-	g_events[ET_Attack] =								new EventDef(ET_Attack,							  0,	   0,      3.2f,  -1.8f, &PropagateToAlliesAndEnemies);
-	g_events[ET_AllyAttack] =						new EventDef(ET_AllyAttack,						0,     0,      0.6f,  -0.2f);
-	g_events[ET_EnemyAttack] =					new EventDef(ET_EnemyAttack,					0,     0,     -0.6f,   0.2f);
+	g_events[ET_Attack] =								new EventDef(ET_Attack,							  0,	   0,      400,   -200, &PropagateToAlliesAndEnemies);
+	g_events[ET_AllyAttack] =						new EventDef(ET_AllyAttack,						0,     0,       30,    -20);
+	g_events[ET_EnemyAttack] =					new EventDef(ET_EnemyAttack,					0,     0,      -30,     20);
 
-	g_events[ET_Offer] =								new EventDef(ET_Offer,								0,     0,     -0.1f,   0.1f);
-	g_events[ET_TurnDownOffer] =				new EventDef(ET_TurnDownOffer, 				0,     0,      0.1f,  -0.3f);
-	g_events[ET_AcceptGoldOffer] =			new EventDef(ET_AcceptGoldOffer,			0,     0,     -0.3f,   0.3f);
-	g_events[ET_AcceptPeaceOffer] =			new EventDef(ET_AcceptPeaceOffer,			0,     0,     -0.4f,   0.3f, &EstablishPeace);
-	g_events[ET_AcceptAllianceOffer] =	new EventDef(ET_AcceptAllianceOffer,  0,     0,     -0.5f,   0.4f, &EstablishAlliance);
+	g_events[ET_Offer] =								new EventDef(ET_Offer,								0,     0,       -1,      5);
+	g_events[ET_TurnDownOffer] =				new EventDef(ET_TurnDownOffer, 				0,     0,       10,    -10);
+	g_events[ET_AcceptGoldOffer] =			new EventDef(ET_AcceptGoldOffer,			0,     0,        0,      5);
+	g_events[ET_AcceptPeaceOffer] =			new EventDef(ET_AcceptPeaceOffer,			0,     0,        0,      0, &EstablishPeace);
+	g_events[ET_AcceptAllianceOffer] =	new EventDef(ET_AcceptAllianceOffer,  0,     0,        0,      0, &EstablishAlliance);
 
-	g_events[ET_NonPayment] =						new EventDef(ET_NonPayment,						0,     0.3f,   0.5f,  -0.2f);
+	g_events[ET_NonPayment] =						new EventDef(ET_NonPayment,						0,     0,        0,      0);
 }
 //---------------------------------------------------------
 void DeleteEventsDefinitions(){

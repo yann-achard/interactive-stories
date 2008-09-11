@@ -444,7 +444,6 @@ void Map::Terraforming(){
 	float range = 100000.0f;
 	float smoothing = 0.60f;
 
-	srand((unsigned int)time(NULL));
 	int s = 4;
 	while (s<hd) s*=2;
 	++s;
