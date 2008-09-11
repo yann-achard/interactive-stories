@@ -365,8 +365,8 @@ void Clan::TotalWar(){
 	for (int igroup=0; igroup<nbGroups; ++igroup){
 		Group& g = *groups[igroup];
 		if (g.mining) {
-			if (g.size>1){
-				g.Subgroup(1);
+			if (g.size>10){
+				g.Subgroup(10);
 				g_board[g.x*g_side+g.z] = groups[igroup];	
 			}
 		} else {
@@ -460,7 +460,7 @@ void Clan::SendSurplusToWar(){
 		Group* mg = g_board[xm*g_side+zm];
 		assert(mg);
 		if (mg->clan!=this && g_allies[id][mg->clan->id]==0 && 
-				(target==NULL || g_stances[id][mg->id]<g_stances[id][target->id] ||
+			(target==NULL || g_stances[id][mg->clan->id]<g_stances[id][target->clan->id] ||
 				 (target->clan==mg->clan || target->size>mg->size)
 				)
 			 ){

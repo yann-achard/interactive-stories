@@ -52,7 +52,7 @@ void Group::StopMining(){
 //---------------------------------------------------------
 void Group::Combat(Group& target){
 	int apow;	int dpow; int bodycount;
-	sprintf(logstr, "\t\t\t- Group %s[%d]{%d}(%d,%d) vs %s[%d]{%d}(%d,%d)\n", clan->name,id,size,x,z, target.clan->name,target.id,target.size,target.x,target.z);	Log();
+	//sprintf(logstr, "\t\t\t- Group %s[%d]{%d}(%d,%d) vs %s[%d]{%d}(%d,%d)\n", clan->name,id,size,x,z, target.clan->name,target.id,target.size,target.x,target.z);	Log();
 	//assert(g_allies[target.clan->id][clan->id]==0);
 	assert(target.clan != clan);
 	assert(target.x == target.clan->groups[target.id]->x);
@@ -70,7 +70,7 @@ void Group::Combat(Group& target){
 }
 //---------------------------------------------------------
 void Group::Kill(Clan* attacker, int bodycount){
-	sprintf(logstr, "\t\t\t- Group %s[%d]{%d}(%d,%d) lost %d units\n", clan->name,id,size,x,z, bodycount);	Log();
+	//sprintf(logstr, "\t\t\t- Group %s[%d]{%d}(%d,%d) lost %d units\n", clan->name,id,size,x,z, bodycount);	Log();
 	if (attacker) /*EVENT*/Event(*attacker, *clan, ET_Attack, bodycount/float(clan->size));
 	bool wasMining = mining;
 	if (wasMining) StopMining();
