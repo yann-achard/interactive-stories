@@ -294,7 +294,7 @@ void Game::InitGame(void){
 	g_viz = new char[g_side*g_side];
 	/**/memset(g_viz,100,g_side*g_side);
 
-	g_nbClans = 3;
+	g_nbClans = 4;
 	g_nbAliveClans = g_nbClans;
 	g_maxallies = (int)(((float)g_nbAliveClans)/2.5f);
 	g_clans = new Clan*[g_nbClans];
@@ -337,7 +337,7 @@ void Game::InitGame(void){
 	
 
 	g_miner = 3.0f;
-	g_nbMines = 5;
+	g_nbMines = 7;
 	g_nbFreeMines = g_nbMines;
 	g_mines = new int[g_nbMines][2];
 	/*
@@ -377,29 +377,6 @@ void Game::InitGame(void){
 void Game::Turn(void){
 	Stats();
 	sprintf(logstr, "############# Turn %3d #############\n",g_turn); Log();
-
-	{
-		/// TEST
-
-		float x = 40.0f;
-		float y = 50.0f;
-
-		float a = 100.0f;
-		float b = 1.0f;
-
-		float k = 1.0f;
-		float l = 1.0f;
-
-		float dt = 0.03f;
-
-
-		float dx1 = dt*(-a*x + k*y);
-		float dy1 = dt*(-b*y + l*x);
-
-		float dx2 = dt*(-a*(x+0.5f*dx1) + k*(y+0.5f*dy1));
-
-		float dy2 = dt*(-b*(y+0.5f*dy1) + l*(x+0.5f*dx1));
-	}
 
 	Log("Tempers:\n");
 	for (int i=0; i<g_nbClans; ++i){

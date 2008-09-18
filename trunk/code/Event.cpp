@@ -1,10 +1,12 @@
 #include <stdio.h>
+#include <assert.h>
 #include "Event.h"
 #include "Clan.h"
 #include "sidefunctions.h"
 //---------------------------------------------------------
 extern Clan**				g_clans;
 extern int					g_nbClans;
+extern int					g_turn;
 extern char**				g_allies;
 extern float**			g_stances;
 extern float**			g_peacewill;
@@ -38,33 +40,38 @@ relevance(relev)
 	sprintf(logstr, "\tAfter:  %s(%.1f) %.1f -> %.1f %s(%.1f)\n", ac.name, ac.temper, g_stances[ac.id][re.id], g_stances[re.id][ac.id], re.name, re.temper); Log();
 }
 //---------------------------------------------------------
-EventDef::EventDef(EventType etype, float ab, float ap, float rb, float rp, void (*sp)(const Event&)):
+EventDef::EventDef(EventType etype, float bel, float peace, void (*sp)(const Event&)):
 type(etype),
-affectActorBelligerence(ab),
-affectActorPeacewill(ap),
-affectReceiverBelligerence(rb),
-affectReceiverPeacewill(rp),
+belligerence(bel),
+peacewill(peace),
 specialProcess(sp)
 {
 }
 //---------------------------------------------------------
 void EventDef::ProcessEvent(const Event& e) const {
+	float factor;
 	int a = e.actor.id;
 	int r = e.receiver.id;
 
-	g_belligerence[a][r] = (g_belligerence[a][r]*e.receiver.temper + affectActorBelligerence*e.relevance) / e.receiver.temper;
-	g_peacewill[a][r] = (g_peacewill[a][r]*e.actor.temper + affectActorPeacewill*e.relevance) / e.actor.temper;
+	if (g_turn == 7)
+		int z = 0;
 
-	g_belligerence[r][a] = (g_belligerence[r][a]*e.actor.temper + affectReceiverBelligerence*e.relevance) / e.actor.temper;
-	g_peacewill[r][a] = (g_peacewill[r][a]*e.receiver.temper + affectReceiverPeacewill*e.relevance) / e.receiver.temper;
+	float future = g_stances[r][a]+(peacewill-belligerence)*e.relevance;
 
-	g_stances[a][r] = g_peacewill[a][r]*e.actor.temper - g_belligerence[a][r]*e.receiver.temper + g_friendliness[a][r];
-	if (g_stances[a][r] > 100.0f) g_stances[a][r] = 100.0f;
-	else if (g_stances[a][r] < -100.0f) g_stances[a][r] = -100.0f;
+	if (future > 100.0f) {
+		factor = (99.9f-g_stances[r][a]) / (peacewill-belligerence);
+	} else if (future < -100.0f){
+		factor = (-99.9f-g_stances[r][a]) / (peacewill-belligerence);
+	} else {
+		factor = e.relevance;
+	}
+
+	g_belligerence[r][a] = (g_belligerence[r][a]*e.actor.temper + belligerence*factor) / e.actor.temper;
+	g_peacewill[r][a] = (g_peacewill[r][a]*e.receiver.temper + peacewill*factor) / e.receiver.temper;
 
 	g_stances[r][a] = g_peacewill[r][a]*e.receiver.temper - g_belligerence[r][a]*e.actor.temper + g_friendliness[r][a];
-	if (g_stances[r][a] > 100.0f) g_stances[r][a] = 100.0f;
-	else if (g_stances[r][a] < -100.0f) g_stances[r][a] = -100.0f;
+
+	assert(g_stances[r][a]<=100.0f && g_stances[r][a]>=-100.0f);
 
 	if (EventDef::specialProcess != 0){
 		(EventDef::specialProcess)(e);
@@ -158,23 +165,21 @@ void EstablishAlliance(const Event& e){
 }
 //---------------------------------------------------------
 void InitEventsDefinitions(){
-	g_events = new EventDef*[9];
-	//																							 Event Type						   AcBel	AcPea   ReBel   RePea
-	g_events[ET_Attack] =								new EventDef(ET_Attack,							  0,	   0,      400,   -200, &PropagateToAlliesAndEnemies);
-	g_events[ET_AllyAttack] =						new EventDef(ET_AllyAttack,						0,     0,       30,    -20);
-	g_events[ET_EnemyAttack] =					new EventDef(ET_EnemyAttack,					0,     0,      -30,     20);
+	g_events = new EventDef*[8];
+	//																							 Event Type					   Bel    Peace
+	g_events[ET_Attack] =								new EventDef(ET_Attack,						 400,   -200, &PropagateToAlliesAndEnemies);
+	g_events[ET_AllyAttack] =						new EventDef(ET_AllyAttack,				  30,    -20);
+	g_events[ET_EnemyAttack] =					new EventDef(ET_EnemyAttack,			 -30,     20);
 
-	g_events[ET_Offer] =								new EventDef(ET_Offer,								0,     0,       -1,      5);
-	g_events[ET_TurnDownOffer] =				new EventDef(ET_TurnDownOffer, 				0,     0,       10,    -10);
-	g_events[ET_AcceptGoldOffer] =			new EventDef(ET_AcceptGoldOffer,			0,     0,        0,      5);
-	g_events[ET_AcceptPeaceOffer] =			new EventDef(ET_AcceptPeaceOffer,			0,     0,        0,      0, &EstablishPeace);
-	g_events[ET_AcceptAllianceOffer] =	new EventDef(ET_AcceptAllianceOffer,  0,     0,        0,      0, &EstablishAlliance);
-
-	g_events[ET_NonPayment] =						new EventDef(ET_NonPayment,						0,     0,        0,      0);
+	g_events[ET_Offer] =								new EventDef(ET_Offer,							-1,      5);
+	g_events[ET_TurnDownOffer] =				new EventDef(ET_TurnDownOffer, 			10,    -10);
+	g_events[ET_AcceptGoldOffer] =			new EventDef(ET_AcceptGoldOffer,		 0,      5);
+	g_events[ET_AcceptPeaceOffer] =			new EventDef(ET_AcceptPeaceOffer,		 0,      0, &EstablishPeace);
+	g_events[ET_AcceptAllianceOffer] =	new EventDef(ET_AcceptAllianceOffer, 0,      0, &EstablishAlliance);
 }
 //---------------------------------------------------------
 void DeleteEventsDefinitions(){
-	for (int i=8; i>=0; --i){
+	for (int i=7; i>=0; --i){
 		delete g_events[i];
 	}
 	delete g_events;
