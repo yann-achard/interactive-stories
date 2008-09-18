@@ -18,7 +18,6 @@ enum	EventType {
 	ET_Attack,
 	ET_AllyAttack,
 	ET_EnemyAttack,
-	ET_NonPayment
 };
 //---------------------------------------------------------
 class Event {
@@ -34,14 +33,12 @@ public:
 class EventDef {
 public:
 	EventType	type;
-	float			affectActorBelligerence;
-	float			affectActorPeacewill;
-	float			affectReceiverBelligerence;
-	float			affectReceiverPeacewill;
+	float			belligerence;
+	float			peacewill;
 	void			(*specialProcess)(const Event& e);
 
 	EventDef();
-	EventDef(EventType etype, float ab, float ap, float rb, float rp, void (*sp)(const Event&)=0);
+	EventDef(EventType etype, float bel, float peace, void (*sp)(const Event&)=0);
 	
 	void ProcessEvent(const Event& e) const;
 };
