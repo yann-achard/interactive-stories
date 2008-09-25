@@ -3,6 +3,7 @@
 #include "main.h"
 #include "Group.h"
 #include "Clan.h"
+#include "Relations.h"
 //---------------------------------------------------------
 char	logstr[1024];
 //---------------------------------------------------------
@@ -85,11 +86,11 @@ void Stats(){
 	}
 	for (int i=0; i<g_nbClans; ++i){
 		Clan& c = *g_clans[i];
-		for (int j=0; j<g_nbClans; ++j){
+		for (int j=i+1; j<g_nbClans; ++j){
 			Clan& d = *g_clans[j];
 			if (i==j) continue;
 			if (c.alive && d.alive) {
-				fprintf(fh, "%3.2f\t",g_stances[i][j]);
+				fprintf(fh, "%3.2f\t",g_rel->Stance(i,j));
 			} else {
 				fprintf(fh, "0.0000\t");
 			}

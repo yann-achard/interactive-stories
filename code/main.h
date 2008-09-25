@@ -10,6 +10,7 @@
 using namespace std;
 //---------------------------------------------------------
 class Game;
+class Relations;
 class Vec3Df;
 class Clan;
 class Hud;
@@ -72,10 +73,8 @@ extern int					g_turn;
 extern int					g_maxallies;
 extern float				g_miner;
 extern char*				g_viz;
-extern char**				g_allies;
-extern float**			g_stances;
-extern float**			g_peacewill;
-extern float**			g_friendliness;
-extern float**			g_belligerence;
+extern Relations*		g_rel;
+ // STATS //
+extern float				g_cpppt;
 //------------------------------------------------
 #endif//__MAIN_H__

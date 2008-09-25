@@ -54,6 +54,7 @@ public:
 
 	void						Hover(int x, int z);
 
+	void						LogRel(void);
 	void						Turn(void);
 	void						Update(void);
 	void						Render(void);
