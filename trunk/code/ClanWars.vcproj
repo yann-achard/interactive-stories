@@ -330,6 +330,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Relations.h"
+				>
+			</File>
+			<File
 				RelativePath=".\sidefunctions.h"
 				>
 			</File>

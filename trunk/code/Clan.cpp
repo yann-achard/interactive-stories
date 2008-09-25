@@ -8,6 +8,7 @@
 #include "names.h"
 #include "colors.h"
 #include "Event.h"
+#include "Relations.h"
 //---------------------------------------------------------
 Clan::Clan(int _id, int x, int z, int _size){
 	alive = true;
@@ -47,17 +48,17 @@ void Clan::UpgradeStamina(){
 //---------------------------------------------------------
 int Clan::AllianceCost(const Clan& c){
 	int price;
-	if (g_stances[id][c.id] >= 50.0f){
+	if (g_rel->Stance(id,c.id) >= 50.0f){
 		price = 0;
 	} else {
-		price = int((float)c.gold*((50.0f-g_stances[id][c.id])/150.0f));
+		price = int((float)c.gold*((50.0f-g_rel->Stance(id,c.id))/150.0f));
 	}
 	//sprintf(logstr, "\t\t\t- Price of alliance from %s to %s: %d\n", c.name, name, price); Log();
 	return (price);
 }
 //---------------------------------------------------------
 void Clan::DeadAlly(Clan* c){
-	g_allies[id][c->id] = 0;
+	g_rel->Ally(id,c->id) = 0;
 	if (nbAllies == 1){
 		delete allies;
 		nbAllies = 0;
@@ -72,7 +73,7 @@ void Clan::DeadAlly(Clan* c){
 }
 //---------------------------------------------------------
 void Clan::AddAlly(Clan* c){
-	g_allies[id][c->id] = 1;
+	g_rel->Ally(id,c->id) = 1;
 	alliancePop += c->size;
 	Clan** newallies = new Clan*[nbAllies+1];
 	for (int i=nbAllies-1; i>=0; --i){
@@ -86,9 +87,8 @@ void Clan::AddAlly(Clan* c){
 }
 //---------------------------------------------------------
 void Clan::RemoveAlly(Clan* c){
-	sprintf(logstr, "- %s no longer sees %s as an ally (%3.1f)\n", name, c->name, g_stances[id][c->id]); Log();
-	assert(g_allies[id][c->id] == 1);
-	g_allies[id][c->id] = 0;
+	sprintf(logstr, "- %s no longer sees %s as an ally (%3.1f)\n", name, c->name, g_rel->Stance(id,c->id)); Log();
+	g_rel->Ally(id,c->id) = false;
 	alliancePop -= c->size;
 	for (int i=0; i<nbAllies; ++i){
 		if (allies[i] == c){
@@ -133,12 +133,12 @@ bool Clan::ReceiveAllianceOffer(const Clan& c, int bribe){
 	if (bribe >= AllianceCost(c)){
 		return true;
 	}
-	return (g_stances[id][c.id] >= 50.0f);
+	return (g_rel->Stance(id,c.id) >= 50.0f);
 }
 //---------------------------------------------------------
 bool Clan::ReceivePeaceOffer(const Clan& c){
 	/*EVENT*/Event(c, *this, ET_Offer);
-	return (g_peacewill[id][c.id] > g_belligerence[id][c.id]);
+	return (g_rel->Pw(id,c.id) > g_rel->Bel(id,c.id));
 }
 //---------------------------------------------------------
 bool Clan::ReceiveGoldOffering(int amount, Clan& donor){
@@ -262,8 +262,8 @@ void Clan::Turn(){
 		int savings = (goldintake-size)>0 ? gold : gold+(goldintake-size)*10;
 		bestclan = NULL;
 		for (int i=g_nbClans-1; i>=0; --i){
-			if (g_allies[id][i] || i==id || g_clans[i]->alive==false) continue;
-			score = g_stances[id][i];
+			if (g_rel->Ally(id,i) || i==id || g_clans[i]->alive==false) continue;
+			score = g_rel->Stance(id,i);
 			if (score>bestscore) {
 				bestscore = score;
 				bestclan = g_clans[i];
@@ -329,6 +329,7 @@ void Clan::Turn(){
 			}
 		}
 	}
+	ImplantGroups();
 	MergeGroups();
 	ImplantGroups();
 	FinishTurn();
@@ -354,7 +355,7 @@ void Clan::AttackTarget(Group& target){
 			int idx = g.GetNextCell(target.x,target.z);
 			assert(g_board[idx]);
 			// Don't target allies
-			if (g_allies[id][g_board[idx]->id]) continue;
+			if (g_rel->Ally(id,g_board[idx]->id)) continue;
 			g.Combat(*g_board[idx]);
 		}
 	}
@@ -381,8 +382,8 @@ void Clan::TotalWar(){
 	for (int iClan=g_nbClans-1; iClan>=0; --iClan){
 		Clan* c = g_clans[iClan];
 		if (c==this || c->alive==false) continue;
-		if (ctarget==NULL || g_stances[id][c->id]<bestc){
-			bestc = g_stances[id][c->id];
+		if (ctarget==NULL || g_rel->Stance(id,c->id)<bestc){
+			bestc = g_rel->Stance(id,c->id);
 			ctarget = c;
 		}
 	}
@@ -430,7 +431,7 @@ void Clan::RegroupNonMiningGroups(Group* target){
 				int idx = g.GetNextCell(big->x,big->z);
 				assert(g_board[idx]);
 				// Don't target allies
-				if (g_allies[id][g_board[idx]->id]) continue;
+				if (g_rel->Ally(id,g_board[idx]->id)) continue;
 				g.Combat(*g_board[idx]);
 			}
 		}
@@ -459,8 +460,8 @@ void Clan::SendSurplusToWar(){
 		int zm = g_mines[i][1];
 		Group* mg = g_board[xm*g_side+zm];
 		assert(mg);
-		if (mg->clan!=this && g_allies[id][mg->clan->id]==0 && 
-			(target==NULL || g_stances[id][mg->clan->id]<g_stances[id][target->clan->id] ||
+		if (mg->clan!=this && g_rel->Ally(id,mg->clan->id)==false && 
+			(target==NULL || g_rel->Stance(id,mg->clan->id)<g_rel->Stance(id,target->clan->id) ||
 				 (target->clan==mg->clan || target->size>mg->size)
 				)
 			 ){

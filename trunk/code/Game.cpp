@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "main.h"
 #include "random.h"
 #include "sidefunctions.h"
@@ -7,6 +8,7 @@
 #include "Clan.h"
 #include "Map.h"
 #include "Event.h"
+#include "Relations.h"
 //---------------------------------------------------------
 Game::Game(void){
 	run = true;
@@ -186,19 +188,8 @@ Game::~Game(void){
 	UnregisterClass("ClassName",GetModuleHandle(NULL));	
 
 	DeleteEventsDefinitions();
-	for (int i=g_nbClans-1; i>=0; --i){
-		delete g_clans[i];
-		delete g_stances[i];
-		delete g_belligerence[i];
-		delete g_friendliness[i];
-	}
 	delete g_clans;
-	delete g_stances;
-	delete g_peacewill;
-	delete g_belligerence;
-	delete g_friendliness;
 	delete g_board;
-	delete g_allies;
 	delete g_viz;
 	delete g_map;
 	delete g_selected;
@@ -309,35 +300,10 @@ void Game::InitGame(void){
 		g_clans[i] = new Clan(i,x,z,800);
 		g_pop += g_clans[i]->size;
 	}
-	g_friendliness = new float*[g_nbClans];
-	g_belligerence = new float*[g_nbClans];
-	g_peacewill = new float*[g_nbClans];
-	g_stances = new float*[g_nbClans];
-	g_allies = new char*[g_nbClans];
-	for (int i=g_nbClans-1; i>=0; --i){
-		g_friendliness[i] = new float[g_nbClans];
-		g_belligerence[i] = new float[g_nbClans];
-		g_stances[i] = new float[g_nbClans];
-		g_peacewill[i] = new float[g_nbClans];
-		g_allies[i] = new char[g_nbClans];
-		for (int j=g_nbClans-1; j>=0; --j){
-			g_friendliness[i][j] = random(-10.0f,10.0f);
-			//g_stances[i][j] = g_friendliness[i][j];
-			g_belligerence[i][j] = 1.0f;
-			g_peacewill[i][j] = 1.0f;
-			g_allies[i][j] = 0;
-		}
-	}
-	for (int i=g_nbClans-1; i>=0; --i){
-		for (int j=g_nbClans-1; j>=0; --j){
-			g_friendliness[i][j] = g_friendliness[j][i];
-			g_stances[i][j] = g_friendliness[i][j];
-		}
-	}
-	
+	g_rel = new Relations(g_nbClans);
 
 	g_miner = 3.0f;
-	g_nbMines = 7;
+	g_nbMines = 10;
 	g_nbFreeMines = g_nbMines;
 	g_mines = new int[g_nbMines][2];
 	/*
@@ -374,26 +340,35 @@ void Game::InitGame(void){
 	InitEventsDefinitions();
 }
 //---------------------------------------------------------
-void Game::Turn(void){
-	Stats();
-	sprintf(logstr, "############# Turn %3d #############\n",g_turn); Log();
-
-	Log("Tempers:\n");
+void Game::LogRel(){
 	for (int i=0; i<g_nbClans; ++i){
 		Clan& c = *g_clans[i];
 		if (c.alive){
 			sprintf(logstr,"\t%s\t%3.2f\n", c.name, c.temper); Log();
-			for (int j=g_nbClans-1; j>=0; --j){
-				Clan& d = *g_clans[j];
-				if (i==j || d.alive==false) continue;
-				sprintf(logstr,"\t\t- %s\t%3.2f\t%3.2f -> %3.2f\n", d.name, g_peacewill[i][j], g_belligerence[i][j], g_stances[i][j]); Log();
-			}
 		} else {
-			sprintf(logstr,"\t%s\t-Dead-\n", c.name); Log();
+			sprintf(logstr,"\t%s\t-Dead-\n", c.name, c.temper); Log();
+		}
+	}
+	for (int i=0; i<g_nbClans; ++i){
+		Clan& c = *g_clans[i];
+		if (c.alive){
+			for (int j=i+1; j<g_nbClans; ++j){
+				Clan& d = *g_clans[j];
+				if (d.alive){
+					sprintf(logstr,"\t%s%s\t%3.2f\t%3.2f -> %3.2f\n", c.name, d.name, g_rel->Pw(i,j), g_rel->Bel(i,j), g_rel->Stance(i,j));
+					Log();
+				}
+			}
 		}
 	}
 	Log("--\n");
+}
+//---------------------------------------------------------
+void Game::Turn(void){
+	Stats();
+	sprintf(logstr, "############# Turn %3d #############\n",g_turn); Log();
 
+	LogRel();
 	g_maxallies = (int)(((float)g_nbAliveClans)/2.5f);
 	int newpop = 0;
 	for (int i=g_nbClans-1; i>=0; --i){
@@ -405,23 +380,7 @@ void Game::Turn(void){
 	g_pop = newpop;
 
 
-	Log("Tempers:\n");
-	for (int i=0; i<g_nbClans; ++i){
-		Clan& c = *g_clans[i];
-		if (c.alive){
-			sprintf(logstr,"\t%s\t%3.2f\n", c.name, c.temper); Log();
-			for (int j=g_nbClans-1; j>=0; --j){
-				Clan& d = *g_clans[j];
-				if (i==j || d.alive==false) continue;
-				sprintf(logstr,"\t\t- %s\t%3.2f\t%3.2f -> %3.2f\n", d.name, g_peacewill[i][j], g_belligerence[i][j], g_stances[i][j]); Log();
-			}
-		} else {
-			sprintf(logstr,"\t%s\t-Dead-\n", c.name); Log();
-		}
-	}
-	Log("--\n");
-
-
+	LogRel();
 
 	// Update model
 	float dt = 0.02f;
@@ -432,7 +391,7 @@ void Game::Turn(void){
 		c.d1temper = 0.0f;
 		for (int j=g_nbClans-1; j>=0; --j){
 			if (i!=j && g_clans[j]->alive){
-				c.d1temper += g_belligerence[i][j]*g_clans[j]->temper - g_peacewill[i][j]*c.temper - g_friendliness[i][j];
+				c.d1temper += g_rel->Bel(i,j)*g_clans[j]->temper - g_rel->Pw(i,j)*c.temper - g_rel->Fri(i,j);
 			}
 		}
 		c.d1temper *= dt;
@@ -444,38 +403,91 @@ void Game::Turn(void){
 		c.d2temper = 0.0f;
 		for (int j=g_nbClans-1; j>=0; --j){
 			if (i!=j && g_clans[j]->alive){
-				c.d2temper += g_belligerence[i][j]*(g_clans[j]->temper+0.5f*g_clans[j]->d1temper) - g_peacewill[i][j]*(c.temper+0.5f*c.d1temper) - g_friendliness[i][j];
+				c.d2temper += g_rel->Bel(i,j)*(g_clans[j]->temper+0.5f*g_clans[j]->d1temper) - g_rel->Pw(i,j)*(c.temper+0.5f*c.d1temper) - g_rel->Fri(i,j);
 			}
 		}
 
 		// Reset or update
+		/*
 		if (c.temper>=100.0f && c.d2temper>0.0f){
 			for (int j=g_nbClans-1; j>=0; --j){
-				g_peacewill[i][j] *= 1.2f;
+				g_rel->Pw(i,j) *= 1.2f;
 			}
 			//c.temper = random(70.0f, 95.0f);
 			//sprintf(logstr, "Resetting %s to %3.2f\n", c.name, c.temper); Log();
 		} else if (c.temper<=1.0f && c.d2temper<0.0f){
 			for (int j=g_nbClans-1; j>=0; --j){
-				g_peacewill[i][j] *= 0.8f;
+				g_rel->Pw(i,j) *= 0.8f;
 			}
 			//c.temper = random(5.0f, 30.0f);
 			//sprintf(logstr, "Resetting %s to %3.2f\n", c.name, c.temper); Log();
 		} else {
+		*/
 			c.d2temper *= dt;
 			c.temper += c.d2temper;
 			if (c.temper > 100.0f) c.temper = 100.0f;
 			else if (c.temper < 1.0f) c.temper = 1.0f;
-		}
+		//}
 	}
 
 	// Update stances
 	for (int i=g_nbClans-1; i>=0; --i){
+		if (g_clans[i]->alive==false) continue;
 		Clan& c = *g_clans[i];
 		for (int j=g_nbClans-1; j>=0; --j){
-			g_stances[i][j] = g_peacewill[i][j]*c.temper - g_belligerence[i][j]*g_clans[j]->temper + g_friendliness[i][j];
-			if (g_stances[i][j] > 100.0f) g_stances[i][j]=100.0f;
-			else if (g_stances[i][j] < -100.0f) g_stances[i][j]=-100.0f;
+			Clan& d = *g_clans[j];
+			if (i==j || d.alive==false) continue;
+			// stats
+			float prev = g_rel->Stance(i,j);
+
+			float tempa = c.temper;
+			float tempr = d.temper;
+			/*
+			float a = c.temper*g_rel->Pw(i,j) - d.temper*g_rel->Bel(i,j) + g_rel->Fri(i,j);
+			float b = d.temper*g_rel->Pw(j,i) - c.temper*g_rel->Bel(j,i) + g_rel->Fri(i,j);
+			
+			if (a > 100.0f){
+				g_rel->Pw(i,j) = (100.0f + d.temper*g_rel->Bel(i,j) - g_rel->Fri(i,j)) / c.temper;
+				a = c.temper*g_rel->Pw(i,j) - d.temper*g_rel->Bel(i,j) + g_rel->Fri(i,j);
+				b = d.temper*g_rel->Pw(j,i) - c.temper*g_rel->Bel(j,i) + g_rel->Fri(i,j);
+			} else if (a < -100.0f) {
+				g_rel->Bel(i,j) = (100.0f + c.temper*g_rel->Pw(i,j) + g_rel->Fri(i,j)) / d.temper;
+				a = c.temper*g_rel->Pw(i,j) - d.temper*g_rel->Bel(i,j) + g_rel->Fri(i,j);
+				b = d.temper*g_rel->Pw(j,i) - c.temper*g_rel->Bel(j,i) + g_rel->Fri(i,j);
+			}
+			assert(a<=100.001f && a>=-100.001f);
+			
+			if (b > 100.0f){
+				g_rel->Pw(j,i) = (100.0f + c.temper*g_rel->Bel(j,i) - g_rel->Fri(j,i)) / d.temper;
+				a = c.temper*g_rel->Pw(i,j) - d.temper*g_rel->Bel(i,j) + g_rel->Fri(i,j);
+				b = d.temper*g_rel->Pw(j,i) - c.temper*g_rel->Bel(j,i) + g_rel->Fri(i,j);
+			} else if (b < -100.0f) {
+				g_rel->Bel(j,i) = (100.0f + d.temper*g_rel->Pw(j,i) + g_rel->Fri(j,i)) / c.temper;
+				a = c.temper*g_rel->Pw(i,j) - d.temper*g_rel->Bel(i,j) + g_rel->Fri(i,j);
+				b = d.temper*g_rel->Pw(j,i) - c.temper*g_rel->Bel(j,i) + g_rel->Fri(i,j);
+			}
+			assert(b<=100.001f && b>=-100.001f);
+
+			g_rel->Stance(i,j) = (a+b)/2.0f;
+
+			assert(g_rel->Stance(i,j)<=100.001f && g_rel->Stance(i,j)>=-100.001f);
+			*/
+
+			float next = ((tempa+tempr) * (g_rel->Pw(i,j)-g_rel->Bel(i,j)))/ 2.0f + g_rel->Fri(i,j);
+
+			if (next > 100.0f){
+				g_rel->Pw(i,j) = ((100.0f - g_rel->Fri(i,j))*2.0f)/(tempa+tempr) + g_rel->Bel(i,j);
+				next = ((tempa+tempr) * (g_rel->Pw(i,j)-g_rel->Bel(i,j)))/ 2.0f + g_rel->Fri(i,j);
+			} else if (next < -100.0f) {
+				g_rel->Bel(i,j) = g_rel->Pw(i,j) - (((-100.0f-g_rel->Fri(i,j))*2.0f) / (tempa+tempr));
+				next = ((tempa+tempr) * (g_rel->Pw(i,j)-g_rel->Bel(i,j)))/ 2.0f + g_rel->Fri(i,j);
+			}
+
+			g_rel->Stance(i,j) = next;
+			assert(g_rel->Stance(i,j)<=100.001f && g_rel->Stance(i,j)>=-100.001f);
+
+			// stats
+			g_cpppt += (prev > g_rel->Stance(i,j) ? prev-g_rel->Stance(i,j) : g_rel->Stance(i,j)-prev) / (float)g_nbAliveClans;
 		}
 	}
 
@@ -483,16 +495,23 @@ void Game::Turn(void){
 	for (int i=g_nbClans-1; i>=0; --i){
 		if (g_clans[i]->alive==false) continue;
 		for (int j=g_nbClans-1; j>=0; --j){
-			if (i==j || g_clans[j]->alive==false || g_allies[i][j]==0 || (g_stances[i][j]>=40.0f && g_stances[j][i]>=40.0f)) continue;
+			if (i==j || g_clans[j]->alive==false || g_rel->Ally(i,j)==false || g_rel->Stance(i,j)>=40.0f) continue;
 			g_clans[i]->RemoveAlly(g_clans[j]);
 			g_clans[j]->RemoveAlly(g_clans[i]);
 		}
 	}
 
 	Log("####################################\n");
+
+	// Stop simulation
+	if ((float)g_nbAliveClans/(float)g_nbClans <= 2.0f/3.0f){
+		sprintf(logstr, "End of the game\n%f\n", g_cpppt/(float)g_turn); Log();
+		exit(0);
+	}
 	++g_turn;
 	g_hud->UpdateText();
 	g_hud->UpdateSelect();
+	return (Turn());
 }
 //---------------------------------------------------------
 void Game::Timeu(){

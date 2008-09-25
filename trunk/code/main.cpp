@@ -51,11 +51,9 @@
  float				g_miner;
  int					g_maxallies;
  char*				g_viz;
- char**				g_allies;
- float**			g_stances;
- float**			g_peacewill;
- float**			g_friendliness;
- float**			g_belligerence;
+ Relations*		g_rel;
+ // STATS //
+ float				g_cpppt; // avg Change per player per turn
 //------------------------------------------------
 int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreviousInstance,LPSTR lpcmdline,int nCmdShow){
 	MSG Message;

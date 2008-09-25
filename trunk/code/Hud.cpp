@@ -6,6 +6,7 @@
 #include "d3ddefs.h"
 #include "main.h"
 #include "Event.h"
+#include "Relations.h"
 //---------------------------------------------------------
 static char* apstrs[8] = {
 	"\n\n\n",
@@ -551,7 +552,7 @@ void Hud::Click(int x, int y){
 				goldpanel = true;
 			} else if (y>=g_winy/2+15 && y<=g_winy/2+45){
 				// Federate
-				if (g_allies[g_clan->id][destclan->id]){
+				if (g_rel->Ally(g_clan->id,destclan->id)){
 					SetCaption("Allready allies.");
 				} else {
 					if (destclan->ReceiveAllianceOffer(*g_clan, 0)){
@@ -724,25 +725,25 @@ void Hud::GoldPanel(){
 	int a=0;
 	int b=0;
 	for (int i=0; i<g_clan->id; ++i){
-		if (g_allies[g_clan->id][i]){
-			sprintf(nfedliststances[a], "%3.2f%", g_stances[g_clans[i]->id][g_clan->id]);
+		if (g_rel->Ally(g_clan->id,i)){
+			sprintf(nfedliststances[a], "%3.2f%", g_rel->Stance(g_clans[i]->id,g_clan->id));
 			fedclans[a] = g_clans[i];
 			fedliststr[a++] = g_clans[i]->name;
 
 		} else {
-			sprintf(fedliststances[b], "%3.2f%", g_stances[g_clans[i]->id][g_clan->id]);
+			sprintf(fedliststances[b], "%3.2f%", g_rel->Stance(g_clans[i]->id,g_clan->id));
 			nfedclans[b] = g_clans[i];
 			nfedliststr[b++] = g_clans[i]->name;
 		}
 	}
 	for (int i=g_clan->id+1; i<g_nbClans; ++i){
-		if (g_allies[g_clan->id][i]){
-			sprintf(fedliststances[a], "%3.2f%", g_stances[g_clans[i]->id][g_clan->id]);
+		if (g_rel->Ally(g_clan->id,i)){
+			sprintf(fedliststances[a], "%3.2f%", g_rel->Stance(g_clans[i]->id,g_clan->id));
 			fedclans[a] = g_clans[i];
 			fedliststr[a++] = g_clans[i]->name;
 
 		} else {
-			sprintf(nfedliststances[b], "%3.2f%", g_stances[g_clans[i]->id][g_clan->id]);
+			sprintf(nfedliststances[b], "%3.2f%", g_rel->Stance(g_clans[i]->id,g_clan->id));
 			nfedclans[b] = g_clans[i];
 			nfedliststr[b++] = g_clans[i]->name;
 		}
