@@ -23,7 +23,7 @@ Clan::Clan(int _id, int x, int z, int _size){
 	alliancePop = size;
 	nbAllies = 0;
 	nbGroups = 1;
-	gold = 20000;
+	gold = 40000;
 	myMines = 0;
 	goldintake = 0;
 	stamina = 2.9;

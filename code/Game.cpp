@@ -285,9 +285,9 @@ void Game::InitGame(void){
 	g_viz = new char[g_side*g_side];
 	/**/memset(g_viz,100,g_side*g_side);
 
-	g_nbClans = 4;
+	g_nbClans = 5;
 	g_nbAliveClans = g_nbClans;
-	g_maxallies = (int)(((float)g_nbAliveClans)/2.5f);
+	g_maxallies = 2;//(int)(((float)g_nbAliveClans)/2.5f);
 	g_clans = new Clan*[g_nbClans];
 	g_pop = 0;
 	for (int i=g_nbClans-1; i>=0; --i){
@@ -302,7 +302,7 @@ void Game::InitGame(void){
 	}
 	g_rel = new Relations(g_nbClans);
 
-	g_miner = 3.0f;
+	g_miner = 4.0f;
 	g_nbMines = 10;
 	g_nbFreeMines = g_nbMines;
 	g_mines = new int[g_nbMines][2];
@@ -369,6 +369,7 @@ void Game::Turn(void){
 	sprintf(logstr, "############# Turn %3d #############\n",g_turn); Log();
 
 	LogRel();
+
 	g_maxallies = (int)(((float)g_nbAliveClans)/2.5f);
 	int newpop = 0;
 	for (int i=g_nbClans-1; i>=0; --i){
@@ -442,38 +443,11 @@ void Game::Turn(void){
 
 			float tempa = c.temper;
 			float tempr = d.temper;
-			/*
-			float a = c.temper*g_rel->Pw(i,j) - d.temper*g_rel->Bel(i,j) + g_rel->Fri(i,j);
-			float b = d.temper*g_rel->Pw(j,i) - c.temper*g_rel->Bel(j,i) + g_rel->Fri(i,j);
-			
-			if (a > 100.0f){
-				g_rel->Pw(i,j) = (100.0f + d.temper*g_rel->Bel(i,j) - g_rel->Fri(i,j)) / c.temper;
-				a = c.temper*g_rel->Pw(i,j) - d.temper*g_rel->Bel(i,j) + g_rel->Fri(i,j);
-				b = d.temper*g_rel->Pw(j,i) - c.temper*g_rel->Bel(j,i) + g_rel->Fri(i,j);
-			} else if (a < -100.0f) {
-				g_rel->Bel(i,j) = (100.0f + c.temper*g_rel->Pw(i,j) + g_rel->Fri(i,j)) / d.temper;
-				a = c.temper*g_rel->Pw(i,j) - d.temper*g_rel->Bel(i,j) + g_rel->Fri(i,j);
-				b = d.temper*g_rel->Pw(j,i) - c.temper*g_rel->Bel(j,i) + g_rel->Fri(i,j);
-			}
-			assert(a<=100.001f && a>=-100.001f);
-			
-			if (b > 100.0f){
-				g_rel->Pw(j,i) = (100.0f + c.temper*g_rel->Bel(j,i) - g_rel->Fri(j,i)) / d.temper;
-				a = c.temper*g_rel->Pw(i,j) - d.temper*g_rel->Bel(i,j) + g_rel->Fri(i,j);
-				b = d.temper*g_rel->Pw(j,i) - c.temper*g_rel->Bel(j,i) + g_rel->Fri(i,j);
-			} else if (b < -100.0f) {
-				g_rel->Bel(j,i) = (100.0f + d.temper*g_rel->Pw(j,i) + g_rel->Fri(j,i)) / c.temper;
-				a = c.temper*g_rel->Pw(i,j) - d.temper*g_rel->Bel(i,j) + g_rel->Fri(i,j);
-				b = d.temper*g_rel->Pw(j,i) - c.temper*g_rel->Bel(j,i) + g_rel->Fri(i,j);
-			}
-			assert(b<=100.001f && b>=-100.001f);
-
-			g_rel->Stance(i,j) = (a+b)/2.0f;
-
-			assert(g_rel->Stance(i,j)<=100.001f && g_rel->Stance(i,j)>=-100.001f);
-			*/
 
 			float next = ((tempa+tempr) * (g_rel->Pw(i,j)-g_rel->Bel(i,j)))/ 2.0f + g_rel->Fri(i,j);
+
+			assert(g_rel->Pw(i,j)>0.0f);
+			assert(g_rel->Bel(i,j)>0.0f);
 
 			if (next > 100.0f){
 				g_rel->Pw(i,j) = ((100.0f - g_rel->Fri(i,j))*2.0f)/(tempa+tempr) + g_rel->Bel(i,j);
@@ -483,6 +457,8 @@ void Game::Turn(void){
 				next = ((tempa+tempr) * (g_rel->Pw(i,j)-g_rel->Bel(i,j)))/ 2.0f + g_rel->Fri(i,j);
 			}
 
+			assert(g_rel->Pw(i,j)>0.0f);
+			assert(g_rel->Bel(i,j)>0.0f);
 			g_rel->Stance(i,j) = next;
 			assert(g_rel->Stance(i,j)<=100.001f && g_rel->Stance(i,j)>=-100.001f);
 
@@ -505,7 +481,9 @@ void Game::Turn(void){
 
 	// Stop simulation
 	if ((float)g_nbAliveClans/(float)g_nbClans <= 2.0f/3.0f){
+		++g_turn;
 		sprintf(logstr, "End of the game\n%f\n", g_cpppt/(float)g_turn); Log();
+		Stats();
 		exit(0);
 	}
 	++g_turn;

@@ -77,8 +77,14 @@ void EventDef::ProcessEvent(const Event& e) const {
 		factor = e.relevance;
 	}
 
+	assert(g_rel->Pw(i,j)>0.0f);
+	assert(g_rel->Bel(i,j)>0.0f);
+
 	g_rel->Bel(i,j) = (g_rel->Bel(i,j)*(tempa+tempr) + belligerence*factor) / (tempa+tempr);
 	g_rel->Pw(i,j) = (g_rel->Pw(i,j)*(tempa+tempr) + peacewill*factor) / (tempa+tempr);
+
+	assert(g_rel->Pw(i,j)>0.0f);
+	assert(g_rel->Bel(i,j)>0.0f);
 
 	// stats
 	float prev = g_rel->Stance(i,j);
