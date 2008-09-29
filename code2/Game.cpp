@@ -261,7 +261,7 @@ void Game::InitScene(void){
 //---------------------------------------------------------
 void Game::InitGame(void){
 	//srand((unsigned int)time(NULL));
-	srand(0);
+	srand(1);
 
 	g_clan = NULL;
 	g_ctrl = false;
@@ -287,7 +287,7 @@ void Game::InitGame(void){
 
 	g_nbClans = 5;
 	g_nbAliveClans = g_nbClans;
-	g_maxallies = 2;//(int)(((float)g_nbAliveClans)/2.5f);
+	g_maxallies = (int)(((float)g_nbAliveClans)/2.0f);
 	g_clans = new Clan*[g_nbClans];
 	g_pop = 0;
 	for (int i=g_nbClans-1; i>=0; --i){
@@ -355,7 +355,7 @@ void Game::LogRel(){
 			for (int j=i+1; j<g_nbClans; ++j){
 				Clan& d = *g_clans[j];
 				if (d.alive){
-					sprintf(logstr,"\t%s%s\t%3.2f\t%3.2f -> %3.2f\n", c.name, d.name, g_rel->Pw(i,j), g_rel->Bel(i,j), g_rel->Stance(i,j));
+					sprintf(logstr,"\t%s%s\t%1.2f -> %3.2f\n", c.name, d.name, g_rel->Stance(i,j), g_rel->Relation(i,j));
 					Log();
 				}
 			}
@@ -370,7 +370,7 @@ void Game::Turn(void){
 
 	LogRel();
 
-	g_maxallies = (int)(((float)g_nbAliveClans)/2.5f);
+	g_maxallies = (int)(((float)g_nbAliveClans)/2.0f);
 	int newpop = 0;
 	for (int i=g_nbClans-1; i>=0; --i){
 		if (g_clans[i]->alive) {
@@ -392,7 +392,7 @@ void Game::Turn(void){
 		c.d1temper = 0.0f;
 		for (int j=g_nbClans-1; j>=0; --j){
 			if (i!=j && g_clans[j]->alive){
-				c.d1temper += g_rel->Bel(i,j)*g_clans[j]->temper - g_rel->Pw(i,j)*c.temper - g_rel->Fri(i,j);
+				c.d1temper -= g_rel->Stance(i,j)*g_clans[j]->temper;
 			}
 		}
 		c.d1temper *= dt;
@@ -404,66 +404,59 @@ void Game::Turn(void){
 		c.d2temper = 0.0f;
 		for (int j=g_nbClans-1; j>=0; --j){
 			if (i!=j && g_clans[j]->alive){
-				c.d2temper += g_rel->Bel(i,j)*(g_clans[j]->temper+0.5f*g_clans[j]->d1temper) - g_rel->Pw(i,j)*(c.temper+0.5f*c.d1temper) - g_rel->Fri(i,j);
+				c.d2temper -= g_rel->Stance(i,j)*(g_clans[j]->temper+0.5f*g_clans[j]->d1temper);
 			}
 		}
 
-		// Reset or update
-		/*
-		if (c.temper>=100.0f && c.d2temper>0.0f){
-			for (int j=g_nbClans-1; j>=0; --j){
-				g_rel->Pw(i,j) *= 1.2f;
-			}
-			//c.temper = random(70.0f, 95.0f);
-			//sprintf(logstr, "Resetting %s to %3.2f\n", c.name, c.temper); Log();
-		} else if (c.temper<=1.0f && c.d2temper<0.0f){
-			for (int j=g_nbClans-1; j>=0; --j){
-				g_rel->Pw(i,j) *= 0.8f;
-			}
-			//c.temper = random(5.0f, 30.0f);
-			//sprintf(logstr, "Resetting %s to %3.2f\n", c.name, c.temper); Log();
-		} else {
-		*/
-			c.d2temper *= dt;
-			c.temper += c.d2temper;
-			if (c.temper > 100.0f) c.temper = 100.0f;
-			else if (c.temper < 1.0f) c.temper = 1.0f;
-		//}
+		c.d2temper *= dt;
+		c.temper += c.d2temper;
+		if (c.temper > 100.0f) {
+			c.d2temper = 100.0f - c.temper;
+			c.temper = 100.0f;
+		}	else if (c.temper < 10.0f) {
+			c.d2temper = 10.0f - c.temper;
+			c.temper = 10.0f;
+		}
 	}
 
-	// Update stances
+	// Update Relations
 	for (int i=g_nbClans-1; i>=0; --i){
 		if (g_clans[i]->alive==false) continue;
 		Clan& c = *g_clans[i];
 		for (int j=g_nbClans-1; j>=0; --j){
 			Clan& d = *g_clans[j];
 			if (i==j || d.alive==false) continue;
+
+			assert(g_rel->Stance(i,j)>-10.001f);
+			assert(g_rel->Stance(i,j)< 10.001f);
+			assert(g_rel->Relation(i,j)>-100.001f);
+			assert(g_rel->Relation(i,j)< 100.001f);
+
 			// stats
-			float prev = g_rel->Stance(i,j);
+			float prev = g_rel->Relation(i,j);
 
 			float tempa = c.temper;
 			float tempr = d.temper;
 
-			float next = ((tempa+tempr) * (g_rel->Pw(i,j)-g_rel->Bel(i,j)))/ 2.0f + g_rel->Fri(i,j);
-
-			assert(g_rel->Pw(i,j)>0.0f);
-			assert(g_rel->Bel(i,j)>0.0f);
+			float next = ((tempa+tempr) * g_rel->Stance(i,j)) / 2.0f;
 
 			if (next > 100.0f){
-				g_rel->Pw(i,j) = ((100.0f - g_rel->Fri(i,j))*2.0f)/(tempa+tempr) + g_rel->Bel(i,j);
-				next = ((tempa+tempr) * (g_rel->Pw(i,j)-g_rel->Bel(i,j)))/ 2.0f + g_rel->Fri(i,j);
+				g_rel->Stance(i,j) = 200.0f /(tempa+tempr);
+				next = ((tempa+tempr) * g_rel->Stance(i,j)) / 2.0f;
 			} else if (next < -100.0f) {
-				g_rel->Bel(i,j) = g_rel->Pw(i,j) - (((-100.0f-g_rel->Fri(i,j))*2.0f) / (tempa+tempr));
-				next = ((tempa+tempr) * (g_rel->Pw(i,j)-g_rel->Bel(i,j)))/ 2.0f + g_rel->Fri(i,j);
+				g_rel->Stance(i,j) = -200.0f /(tempa+tempr);
+				next = ((tempa+tempr) * g_rel->Stance(i,j)) / 2.0f;
 			}
 
-			assert(g_rel->Pw(i,j)>0.0f);
-			assert(g_rel->Bel(i,j)>0.0f);
-			g_rel->Stance(i,j) = next;
-			assert(g_rel->Stance(i,j)<=100.001f && g_rel->Stance(i,j)>=-100.001f);
+			g_rel->Relation(i,j) = next;
 
 			// stats
-			g_cpppt += (prev > g_rel->Stance(i,j) ? prev-g_rel->Stance(i,j) : g_rel->Stance(i,j)-prev) / (float)g_nbAliveClans;
+			g_cpppt += (prev > g_rel->Relation(i,j) ? prev-g_rel->Relation(i,j) : g_rel->Relation(i,j)-prev) / (float)g_nbAliveClans;
+
+			assert(g_rel->Stance(i,j)>-10.001f);
+			assert(g_rel->Stance(i,j)< 10.001f);
+			assert(g_rel->Relation(i,j)>-100.001f);
+			assert(g_rel->Relation(i,j)< 100.001f);
 		}
 	}
 
@@ -471,7 +464,7 @@ void Game::Turn(void){
 	for (int i=g_nbClans-1; i>=0; --i){
 		if (g_clans[i]->alive==false) continue;
 		for (int j=g_nbClans-1; j>=0; --j){
-			if (i==j || g_clans[j]->alive==false || g_rel->Ally(i,j)==false || g_rel->Stance(i,j)>=40.0f) continue;
+			if (i==j || g_clans[j]->alive==false || g_rel->Ally(i,j)==false || g_rel->Stance(i,j)>=0.4f) continue;
 			g_clans[i]->RemoveAlly(g_clans[j]);
 			g_clans[j]->RemoveAlly(g_clans[i]);
 		}

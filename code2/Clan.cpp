@@ -32,7 +32,7 @@ Clan::Clan(int _id, int x, int z, int _size){
 	culture = 1;
 	groups = new Group*[nbGroups];
 	groups[0] = new Group(0, x, z, size, this);
-	temper = 50.0f;
+	temper = 30.0f;
 }
 //---------------------------------------------------------
 Clan::~Clan(){
@@ -48,10 +48,10 @@ void Clan::UpgradeStamina(){
 //---------------------------------------------------------
 int Clan::AllianceCost(const Clan& c){
 	int price;
-	if (g_rel->Stance(id,c.id) >= 50.0f){
+	if (g_rel->Stance(id,c.id) >= 0.6f){
 		price = 0;
 	} else {
-		price = int((float)c.gold*((50.0f-g_rel->Stance(id,c.id))/150.0f));
+		price = int((float)c.gold*((0.6f-g_rel->Stance(id,c.id))/10.6f));
 	}
 	//sprintf(logstr, "\t\t\t- Price of alliance from %s to %s: %d\n", c.name, name, price); Log();
 	return (price);
@@ -87,7 +87,7 @@ void Clan::AddAlly(Clan* c){
 }
 //---------------------------------------------------------
 void Clan::RemoveAlly(Clan* c){
-	sprintf(logstr, "- %s no longer sees %s as an ally (%3.1f)\n", name, c->name, g_rel->Stance(id,c->id)); Log();
+	sprintf(logstr, "- %s no longer sees %s as an ally (%1.2f)\n", name, c->name, g_rel->Stance(id,c->id)); Log();
 	g_rel->Ally(id,c->id) = false;
 	alliancePop -= c->size;
 	for (int i=0; i<nbAllies; ++i){
@@ -130,15 +130,16 @@ bool Clan::IsNextTo(Clan* c){
 //---------------------------------------------------------
 bool Clan::ReceiveAllianceOffer(const Clan& c, int bribe){
 	/*EVENT*/Event(c, *this, ET_Offer);
-	if (bribe >= AllianceCost(c)){
-		return true;
-	}
-	return (g_rel->Stance(id,c.id) >= 50.0f);
+	return (bribe >= AllianceCost(c));
 }
 //---------------------------------------------------------
 bool Clan::ReceivePeaceOffer(const Clan& c){
 	/*EVENT*/Event(c, *this, ET_Offer);
-	return (g_rel->Pw(id,c.id) > g_rel->Bel(id,c.id));
+	for (int i=g_nbClans-1; i>=0; --i){
+		if (i!=id && g_clans[i]->alive && g_rel->Stance(id,i) < g_rel->Stance(id,c.id))
+			return true;
+	}
+	return false;
 }
 //---------------------------------------------------------
 bool Clan::ReceiveGoldOffering(int amount, Clan& donor){
@@ -256,7 +257,7 @@ void Clan::Turn(){
 
 	//sprintf(logstr, "%s begins it's turn with %d gold and %d units\n", name, gold, size); Log();
 	// Get more allies
-	float score=-1000, bestscore=0;
+	float score=-1000, bestscore=-1000;
 	Clan* bestclan = NULL;
 	while (nbAllies < g_maxallies){
 		int savings = (goldintake-size)>0 ? gold : gold+(goldintake-size)*10;
@@ -382,8 +383,8 @@ void Clan::TotalWar(){
 	for (int iClan=g_nbClans-1; iClan>=0; --iClan){
 		Clan* c = g_clans[iClan];
 		if (c==this || c->alive==false) continue;
-		if (ctarget==NULL || g_rel->Stance(id,c->id)<bestc){
-			bestc = g_rel->Stance(id,c->id);
+		if (ctarget==NULL || g_rel->Relation(id,c->id)<bestc){
+			bestc = g_rel->Relation(id,c->id);
 			ctarget = c;
 		}
 	}
@@ -461,7 +462,7 @@ void Clan::SendSurplusToWar(){
 		Group* mg = g_board[xm*g_side+zm];
 		assert(mg);
 		if (mg->clan!=this && g_rel->Ally(id,mg->clan->id)==false && 
-			(target==NULL || g_rel->Stance(id,mg->clan->id)<g_rel->Stance(id,target->clan->id) ||
+			(target==NULL || g_rel->Relation(id,mg->clan->id)<g_rel->Relation(id,target->clan->id) ||
 				 (target->clan==mg->clan || target->size>mg->size)
 				)
 			 ){
