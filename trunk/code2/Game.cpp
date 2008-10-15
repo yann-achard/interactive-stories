@@ -261,7 +261,7 @@ void Game::InitScene(void){
 //---------------------------------------------------------
 void Game::InitGame(void){
 	//srand((unsigned int)time(NULL));
-	srand(1);
+	srand(0);
 
 	g_clan = NULL;
 	g_ctrl = false;
@@ -285,7 +285,7 @@ void Game::InitGame(void){
 	g_viz = new char[g_side*g_side];
 	/**/memset(g_viz,100,g_side*g_side);
 
-	g_nbClans = 5;
+	g_nbClans = 7;
 	g_nbAliveClans = g_nbClans;
 	g_maxallies = (int)(((float)g_nbAliveClans)/2.0f);
 	g_clans = new Clan*[g_nbClans];
@@ -303,7 +303,7 @@ void Game::InitGame(void){
 	g_rel = new Relations(g_nbClans);
 
 	g_miner = 4.0f;
-	g_nbMines = 10;
+	g_nbMines = g_nbClans*2;
 	g_nbFreeMines = g_nbMines;
 	g_mines = new int[g_nbMines][2];
 	/*
@@ -330,9 +330,9 @@ void Game::InitGame(void){
 	g_clan = g_clans[0];
 	g_clan->SetVizibility();
 	g_pos.set(
-		-g_clan->groups[0]->x*g_hgap+g_map->hspan/2.0f,
+		/*-g_clan->groups[0]->x*g_hgap+*/g_map->hspan/2.0f,
 		-20000,
-		-g_clan->groups[0]->z*g_hgap+g_map->hspan/1.5f);
+		/*-g_clan->groups[0]->z*g_hgap+*/g_map->hspan/1.5f);
 	g_rot.set(-1.0f,0,0);	
 	g_hud = new Hud();
 	g_hud->UpdateText();
@@ -482,6 +482,7 @@ void Game::Turn(void){
 	++g_turn;
 	g_hud->UpdateText();
 	g_hud->UpdateSelect();
+	Render();
 	return (Turn());
 }
 //---------------------------------------------------------
