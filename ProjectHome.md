@@ -1,0 +1,1 @@
+The aim of this project is to prove the validity of a mathematical model of conflict that enhances Richardson’s model of Arms Race accounting for interactive scenarios, such as the ones provided by CRPGs (Computer Role Playing Games) and strategy games. Such an improvement translates the model into a fuzzy extension of an HCP (Hybrid Control Process).
